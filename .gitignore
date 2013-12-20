@@ -1,0 +1,8 @@
+tags
+*.a
+*.o
+*.d
+*.bin
+*.elf
+*.swp
+gcc
