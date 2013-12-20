@@ -147,7 +147,7 @@
 #include "queue.h"
 
 /* Demo application includes. */
-#include "partest.h"
+#include "led.h"
 
 /* Hardware and starter kit includes. */
 #include "stm32f4_discovery.h"
