@@ -128,20 +128,6 @@ CFLAGS += \
 
 ld_script	= build/stm32f40x.ld
 image		= $(OUT_DIR)/Demo.elf
-binary		= $(OUT_DIR)/Demo.bin
-
-.PHONY: all clean show
-
-all: $(binary) $(image)
-
-$(OUT_DIR):
-ifeq ($(filter $(OUT_DIR),$(wildcard *)), )
-	$(shell mkdir $(OUT_DIR))
-endif
-
-
-$(binary): $(image)
-	${OBJCOPY} -O binary $^ ${^:.elf=.bin}
 
 $(image): $(objs) $(boot_objs)
 	@echo "LD $(image)"
@@ -149,6 +135,12 @@ $(image): $(objs) $(boot_objs)
            --entry main \
            ${LDFLAGS} -o $@ $^  \
            '${LIBC}' '${LIBM}' '${LIBGCC}'
+	${OBJCOPY} -O binary $@ ${@:.elf=.bin}
+
+$(OUT_DIR):
+ifeq ($(filter $(OUT_DIR),$(wildcard *)), )
+	$(shell mkdir $(OUT_DIR))
+endif
 
 test:
 	@echo $(objs)
@@ -161,6 +153,7 @@ $(boot_objs): $(OUT_DIR)/%.o : %.S $(OUT_DIR)
 	@echo "AS $@"
 	@$(CC) $(AFLAGS) -o $@ -c $<
 
+.PHONY: clean show
 clean:
 	-rm out/*
 
