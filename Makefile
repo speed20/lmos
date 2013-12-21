@@ -15,7 +15,6 @@ LIBC	= $(shell $(CC) -mthumb -march=armv6t2 -print-file-name=libc.a)
 LIBM	= $(shell $(CC) -mthumb -march=armv6t2 -print-file-name=libm.a)
 
 lib_inc := $(patsubst %,-I %,$(shell find lib -type d -print))
-#$(info $(lib_inc))
 
 header	=	-I include \
 			-I kernel/Source \
@@ -54,17 +53,10 @@ src_path=	. \
 			driver/device/invense \
 			driver/device/invense/mpulib
 
-#src_path = $(shell find . -name kernel -prune -o -type d -print)
-#objs1 := $(patsubst %.c,%.o,$(wildcard $(src_path)/*.c))
-#objs2 := $(patsubst %.S,%.o,$(wildcard $(src_path)/*.S))
-
 boot_code_path = boot
-#objs1 = $(notdir $(patsubst %c,%o,$(foreach n,$(src_path),$(wildcard $(n)/*.c))))
-boot_objs = $(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.S))))
+boot_objs = $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.S)))))
 
-#$(info $(boot_objs))
-
-objs  = main.o \
+tmp_objs  = main.o \
 		list.o    \
 		queue.o   \
 		tasks.o   \
@@ -116,13 +108,9 @@ objs  = main.o \
 		task_mpu6050.o \
 		task_ir.o
 
-#objs = $(addprefix $(OUT_DIR)/,$(objs1) $(objs2))
+objs = $(addprefix $(OUT_DIR)/,$(tmp_objs))
 
 VPATH = $(src_path)
-
-#$(info $(objs1))
-#$(info $(objs2))
-#$(info $(objs))
 
 CFLAGS += $(patsubst %,-I %,$(src_path))
 CFLAGS += \
@@ -138,35 +126,41 @@ CFLAGS += \
          -D ARM_MATH_CM4 \
          -D DEBUG
 
-#$(info $(CFLAGS))
-
 ld_script	= build/stm32f40x.ld
-image		= Demo.elf
-binary		= Demo.bin
+image		= $(OUT_DIR)/Demo.elf
+binary		= $(OUT_DIR)/Demo.bin
+
+.PHONY: all clean show
+
+all: $(binary) $(image)
+
+$(OUT_DIR):
+ifeq ($(filter $(OUT_DIR),$(wildcard *)), )
+	$(shell mkdir $(OUT_DIR))
+endif
+
 
 $(binary): $(image)
-	${OBJCOPY} -O binary $(OUT_DIR)/$^ $(OUT_DIR)/${^:.elf=.bin}
+	${OBJCOPY} -O binary $^ ${^:.elf=.bin}
 
-#$(image): $(addprefix $(OUT_DIR)/,$(objs)) $(addprefix $(OUT_DIR)/,$(boot_objs))
 $(image): $(objs) $(boot_objs)
 	@echo "LD $(image)"
 	@${LD} -T ${ld_script} \
            --entry main \
-           ${LDFLAGS} -o $(addprefix $(OUT_DIR)/,$@) $(addprefix $(OUT_DIR)/,$^)  \
+           ${LDFLAGS} -o $@ $^  \
            '${LIBC}' '${LIBM}' '${LIBGCC}'
 
 test:
 	@echo $(objs)
 
-$(objs): %.o : %.c
+$(objs): $(OUT_DIR)/%.o : %.c $(OUT_DIR)
 	@echo "CC $@"
-	@$(CC) $(CFLAGS) -o $(OUT_DIR)/$@ -c $<
+	@$(CC) $(CFLAGS) -o $@ -c $<
 
-$(boot_objs): %.o : %.S
+$(boot_objs): $(OUT_DIR)/%.o : %.S $(OUT_DIR)
 	@echo "AS $@"
-	@$(CC) $(AFLAGS) -o $(OUT_DIR)/$@ -c $<
+	@$(CC) $(AFLAGS) -o $@ -c $<
 
-.PHONY: clean show
 clean:
 	-rm out/*
 
