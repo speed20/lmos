@@ -6,3 +6,4 @@ tags
 *.elf
 *.swp
 gcc
+out
