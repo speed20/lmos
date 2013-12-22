@@ -13,7 +13,7 @@ xSemaphoreHandle xASRSemaphore = NULL;
 xSemaphoreHandle xMP3Semaphore = NULL;
 volatile uint8_t nAsrStatus;
 volatile uint8_t nLD_Mode;
-volatile uint32_t mp3_start, mp3_pos, mp3_size;
+volatile uint32_t mp3_pos, mp3_size;
 volatile uint8_t *mp3_data;
 
 void ld3320_io_init()
@@ -211,7 +211,7 @@ void ld3320_init_common()
 		ld3320_write_reg(0x1B, LD_PLL_ASR_1B);		
 		ld3320_write_reg(0x1D, LD_PLL_ASR_1D);
 
-		ld3320_write_reg(0xB8, 0x05); /* timeout 5sec */
+		ld3320_write_reg(0xB8, 0x03); /* timeout 5sec */
 		ld3320_write_reg(0x6F, 0xFF); 
 	} else {
 		ld3320_write_reg(0x19, LD_PLL_MP3_19);
@@ -323,55 +323,29 @@ void ld3320_AsrAddFixed_ByString(char * pRecogString, uint8_t k)
 	ld3320_write_reg(0x37, 0x04);
 }
 
-unsigned char * str_pattern[] = {
-#if 0
-	"bei jing",   //北京
-	"shang hai",   //上海
-	"tian jin",   //天津
-	"chong qing",   //重庆
-	"guang zhou",   //广州
-	"hang zhou",   //杭州
-	"cheng du",   //成都
-	"nan jing",   //南京
-	"ni hao", 	  //你好   
-	"guan deng",    //关灯，两个等同时关闭
-	"tai deng kai",  //台灯开启，JDQ01
-	"tai deng guan", //台灯关闭，JDQ01
-	"bi  deng kai",  //壁灯开启，JDQ02
-	"bi  deng guan", //壁灯关闭，JDQ02
-	"kai deng",
-	"wa sai", 	   //哇塞
-#endif
-	"ao ba ma",
-	"a a a",
-	"ba ba ba",
-	"ma ma ma",
-};
-
-void ld3320_AsrAddFixed_ByIndex(uint8_t nIndex)
-{
-	ld3320_AsrAddFixed_ByString(str_pattern[nIndex], nIndex);
-}
-
 // Return 1: success.
 //	添加识别关键词语，开发者可以学习"语音识别芯片LD3320高阶秘籍.pdf"中关于垃圾词语吸收错误的用法
-uint8_t ld3320_AsrAddFixed()
+uint8_t ld3320_AsrAddFixed(uint8_t **command, uint8_t count)
 {
-	uint8_t k, flag; 			
+	uint8_t i, flag;
 
 	flag = 1;
-	for (k=0; k<ITEM_COUNT; k++) {	 			
+	for (i=0; i<count; i++) {	 			
 		if(ld3320_Check_ASRBusyFlag_b2() == 0) {
 			flag = 0;
 			break;
 		}		
-		ld3320_AsrAddFixed_ByIndex(k);
+		ld3320_AsrAddFixed_ByString(command[i], i);
 	}
     return flag;
-}	   
+}
 
 uint8_t ld3320_GetResult()
 {
+	serial_println("candidate 1: %d", ld3320_read_reg(0xc5));
+	serial_println("candidate 2: %d", ld3320_read_reg(0xc7));
+	serial_println("candidate 3: %d", ld3320_read_reg(0xc9));
+	serial_println("candidate 4: %d", ld3320_read_reg(0xcb));
 	return ld3320_read_reg(0xc5);	  	
 }
 
@@ -472,7 +446,7 @@ void ld3320_load_mp3_data()
 	}
 }
 
-uint8_t RunASR()
+uint8_t ld3320_run_ASR(uint8_t **command, uint8_t count)
 {
 	uint8_t i, asrflag = 0;
 
@@ -480,7 +454,7 @@ uint8_t RunASR()
 		ld3320_AsrStart();
 		Delay(1000);
 
-		if (ld3320_AsrAddFixed() == 0) {
+		if (ld3320_AsrAddFixed(command, count) == 0) {
 			ld3320_reset();			//	LD3320芯片内部出现不正常，立即重启LD3320芯片
 			Delay(10000);			//	并从初始化开始重新ASR识别流程
 			continue;

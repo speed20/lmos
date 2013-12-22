@@ -18,15 +18,35 @@ void vStartASRTestTask(unsigned portBASE_TYPE uxPriority)
 	xTaskCreate(vASRTestTask, (signed char *)"ASR", 1024, NULL, uxPriority, (xTaskHandle *)NULL);
 }
 
-void do_ASR()
-{
-}
+enum {
+	LEADER = 0,
+	COMMAND,
+};
 
 static portTASK_FUNCTION(vASRTestTask, pvParameters)
 {
 	uint8_t nAsrRes;
-	unsigned portBASE_TYPE uxLED;
-	portTickType xFlashRate, xLastFlashTime;
+	uint8_t count, mode, retry;
+	uint8_t status, **p;
+	uint8_t *command_prefix[] = {
+		"ao ba ma",
+		"tu dou",
+		"tu ou",
+		"sa mu",
+		"a mu",
+		"sa",
+	};
+
+	uint8_t *command[] = {
+		"kai kong tiao",
+		"guan kong tiao",
+		"kai deng",
+		"guan deng",
+		"ai kong tiao",
+		"an kong tiao",
+		"ai deng",
+		"an deng",
+	};
 
 	ld3320_init();
 
@@ -43,39 +63,58 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 	for (;;) {
 		serial_println("play");
 		play_sound(mp3_buf, sizeof(mp3_buf));
-		//play_sound(bpDemoSound, DEMO_SOUND_SIZE); //sizeof(bpDemoSound));
 		xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
 	}
 #endif
 
 #if 1
+	mode = LEADER;
+
 	xSemaphoreTake(xASRSemaphore, 0);
 
 	nAsrStatus = LD_ASR_NONE;
 
 	for (;;) {
-		vParTestSetLED(LED1, 1);
-
 		nAsrStatus = LD_ASR_RUNING;
-		if (RunASR() == 0) {
+		if (mode == LEADER) {
+			serial_println("wait for call");
+			p = command_prefix;
+			count = sizeof(command_prefix)/sizeof(command_prefix[0]);
+
+		} else {
+			serial_println("wait for command");
+			retry--;
+			p = command;
+			count = sizeof(command)/sizeof(command[0]);
+		}
+
+		if (ld3320_run_ASR(p, count) == 0) {
 			nAsrStatus = LD_ASR_ERROR;
 		} else {
-			vParTestSetLED(LED1, 0);
 			xSemaphoreTake(xASRSemaphore, portMAX_DELAY);
 		}
 
 		switch (nAsrStatus) {
 			case LD_ASR_RUNING:
+				serial_println("running");
 			case LD_ASR_ERROR:
-				vParTestToggleLED(LED1);
+				serial_println("error");
 				break;
 			case LD_ASR_FOUNDOK:
 			{
+				serial_println("find");
 				nAsrRes = ld3320_GetResult();
-				if(nAsrRes < ITEM_COUNT) {					
-					serial_println("result: %s size: %d", str_pattern[nAsrRes], sizeof(mp3_buf));
-					play_sound(mp3_buf, sizeof(mp3_buf));
-					xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
+				if(nAsrRes < count) {					
+					serial_println("prefix result: %s", p[nAsrRes]);
+
+					if (mode == LEADER && nAsrRes < 2) {
+						play_sound(mp3_buf, sizeof(mp3_buf));
+						xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
+						mode = COMMAND;
+						retry = 3;
+					} else if (mode == COMMAND && nAsrRes < 4) {
+						mode = LEADER;
+					}
 				}
 				nAsrStatus = LD_ASR_NONE;				
 				break;
@@ -83,7 +122,10 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 			case LD_ASR_FOUNDZERO:
 			default:
 			{
+				serial_println("not found");
 				nAsrStatus = LD_ASR_NONE;
+				if (retry <= 0 || retry > 3)
+					mode = LEADER;
 				break;
 			}
 		}

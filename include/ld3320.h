@@ -67,8 +67,8 @@
 #define MASK_FIFO_STATUS_AFULL		0x08
 #define PLAY_END						0x20
 
-#define MIC_VOL     0x4A  //调节麦克风的灵敏度，数值越大，反应越灵敏，
-#define SPEAKER_VOL 0x02
+#define MIC_VOL     0x4C  //调节麦克风的灵敏度，数值越大，反应越灵敏，
+#define SPEAKER_VOL 0x01
 #define ITEM_COUNT  4	//定义识别语音个数	  
 #define VOICE_COUNT 10
 
@@ -91,9 +91,8 @@ extern xSemaphoreHandle xASRSemaphore;
 extern xSemaphoreHandle xMP3Semaphore;
 extern volatile uint8_t nAsrStatus;
 extern volatile uint8_t nLD_Mode;
-volatile extern uint32_t mp3_start, mp3_cur, mp3_size;
+volatile extern uint32_t mp3_cur, mp3_size;
 volatile extern uint8_t *mp3_data;
-extern unsigned char *str_pattern[];
 
 #ifndef NULL
 #define NULL 0 
