@@ -129,6 +129,10 @@ CFLAGS += \
 ld_script	= build/stm32f40x.ld
 image		= $(OUT_DIR)/Demo.elf
 
+.PHONY: demo clean show
+
+demo: $(image)
+
 $(image): $(objs) $(boot_objs)
 	@echo "LD $(image)"
 	@${LD} -T ${ld_script} \
@@ -145,15 +149,14 @@ endif
 test:
 	@echo $(objs)
 
-$(objs): $(OUT_DIR)/%.o : %.c $(OUT_DIR)
+$(objs): $(OUT_DIR)/%.o : %.c
 	@echo "CC $@"
 	@$(CC) $(CFLAGS) -o $@ -c $<
 
-$(boot_objs): $(OUT_DIR)/%.o : %.S $(OUT_DIR)
+$(boot_objs): $(OUT_DIR)/%.o : %.S
 	@echo "AS $@"
 	@$(CC) $(AFLAGS) -o $@ -c $<
 
-.PHONY: clean show
 clean:
 	-rm out/*
 

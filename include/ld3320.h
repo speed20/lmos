@@ -57,15 +57,19 @@
 #define LD_PLL_ASR_1B 		0x48
 #define LD_PLL_ASR_1D 		0x1f
 
+#define LD_PLL_MP3_19       0x0f
+#define LD_PLL_MP3_1B       0x18
+#define LD_PLL_MP3_1D       (uint8_t)(((90.0*((LD_PLL_11)+1))/(CLK_IN))-1)
+
 #define MASK_INT_SYNC				0x10
 #define MASK_INT_FIFO				0x04
 #define MASK_AFIFO_INT				0x01
 #define MASK_FIFO_STATUS_AFULL		0x08
-#define MP3_END						0x20
+#define PLAY_END						0x20
 
 #define MIC_VOL     0x4A  //调节麦克风的灵敏度，数值越大，反应越灵敏，
-#define SPEAKER_VOL 0x05
-#define ITEM_COUNT  16	//定义识别语音个数	  
+#define SPEAKER_VOL 0x02
+#define ITEM_COUNT  4	//定义识别语音个数	  
 #define VOICE_COUNT 10
 
 //	以下五个状态定义用来记录程序是在运行ASR识别过程中的哪个状态

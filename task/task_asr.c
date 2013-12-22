@@ -7,14 +7,19 @@
 
 #include "stm32f4_discovery.h"
 #include "ld3320.h"
-#include "DemoSound.h"
-#include "sonar.h"
+//#include "DemoSound.h"
+//#include "sonar.h"
+#include "complete.h"
 
 static portTASK_FUNCTION_PROTO(vASRTestTask, pvParameters);
 
 void vStartASRTestTask(unsigned portBASE_TYPE uxPriority)
 {
 	xTaskCreate(vASRTestTask, (signed char *)"ASR", 1024, NULL, uxPriority, (xTaskHandle *)NULL);
+}
+
+void do_ASR()
+{
 }
 
 static portTASK_FUNCTION(vASRTestTask, pvParameters)
@@ -25,11 +30,25 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 
 	ld3320_init();
 
+	/*
 	if (ld3320_test() != 1) {
 		vParTestSetLED(LED1, 1);
 		return ;
 	}
+	*/
 
+	xSemaphoreTake(xMP3Semaphore, 0);
+
+#ifdef ONLY_MP3
+	for (;;) {
+		serial_println("play");
+		play_sound(mp3_buf, sizeof(mp3_buf));
+		//play_sound(bpDemoSound, DEMO_SOUND_SIZE); //sizeof(bpDemoSound));
+		xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
+	}
+#endif
+
+#if 1
 	xSemaphoreTake(xASRSemaphore, 0);
 
 	nAsrStatus = LD_ASR_NONE;
@@ -55,17 +74,8 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 				nAsrRes = ld3320_GetResult();
 				if(nAsrRes < ITEM_COUNT) {					
 					serial_println("result: %s size: %d", str_pattern[nAsrRes], sizeof(mp3_buf));
-					//play_sound(mp3_buf, sizeof(mp3_buf));
-					play_sound(bpDemoSound, sizeof(bpDemoSound));
+					play_sound(mp3_buf, sizeof(mp3_buf));
 					xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
-					serial_println("xxx result: %s size: %d", str_pattern[nAsrRes], sizeof(mp3_buf));
-					/*
-					vParTestToggleLED(LED3);
-					Delay(500000);
-					vParTestToggleLED(LED3);
-					Delay(500000);
-					vParTestToggleLED(LED3);
-					*/
 				}
 				nAsrStatus = LD_ASR_NONE;				
 				break;
@@ -78,4 +88,5 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 			}
 		}
 	}
+#endif
 }

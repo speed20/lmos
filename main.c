@@ -274,7 +274,7 @@ int main(void)
 
 	serial_print("hardware setup ok\r\n");
 
-	xIRQueue = xQueueCreate(10, sizeof(uint32_t));
+//	xIRQueue = xQueueCreate(10, sizeof(uint32_t));
 
 	/* Start standard demo/test application flash tasks.  See the comments at
 	the top of this file.  The LED flash tasks are always created.  The other
