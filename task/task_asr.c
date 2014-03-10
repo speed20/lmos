@@ -7,9 +7,7 @@
 
 #include "stm32f4_discovery.h"
 #include "ld3320.h"
-//#include "DemoSound.h"
-//#include "sonar.h"
-#include "complete.h"
+#include "sound.h"
 
 static portTASK_FUNCTION_PROTO(vASRTestTask, pvParameters);
 
@@ -59,10 +57,12 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 
 	xSemaphoreTake(xMP3Semaphore, 0);
 
+#define ONLY_MP3
+
 #ifdef ONLY_MP3
 	for (;;) {
 		serial_println("play");
-		play_sound(mp3_buf, sizeof(mp3_buf));
+		play_sound(ready_sound, sizeof(ready_sound));
 		xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
 	}
 #endif
@@ -108,11 +108,13 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 					serial_println("prefix result: %s", p[nAsrRes]);
 
 					if (mode == LEADER && nAsrRes < 2) {
-						play_sound(mp3_buf, sizeof(mp3_buf));
+						play_sound(ready_sound, sizeof(ready_sound));
 						xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
 						mode = COMMAND;
 						retry = 3;
 					} else if (mode == COMMAND && nAsrRes < 4) {
+						play_sound(find_sound, sizeof(find_sound));
+						xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
 						mode = LEADER;
 					}
 				}

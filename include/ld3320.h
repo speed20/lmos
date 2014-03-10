@@ -67,8 +67,8 @@
 #define MASK_FIFO_STATUS_AFULL		0x08
 #define PLAY_END						0x20
 
-#define MIC_VOL     0x4C  //调节麦克风的灵敏度，数值越大，反应越灵敏，
-#define SPEAKER_VOL 0x01
+#define MIC_VOL     0x4c  //调节麦克风的灵敏度，数值越大，反应越灵敏，
+#define SPEAKER_VOL 0x03
 #define ITEM_COUNT  4	//定义识别语音个数	  
 #define VOICE_COUNT 10
 

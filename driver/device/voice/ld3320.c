@@ -57,7 +57,7 @@ void ld3320_io_init()
 	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
 	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
 	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
 	SPI_InitStructure.SPI_CRCPolynomial = 7;
 	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
@@ -211,7 +211,7 @@ void ld3320_init_common()
 		ld3320_write_reg(0x1B, LD_PLL_ASR_1B);		
 		ld3320_write_reg(0x1D, LD_PLL_ASR_1D);
 
-		ld3320_write_reg(0xB8, 0x03); /* timeout 5sec */
+		ld3320_write_reg(0xB8, 0x10); /* timeout 5sec */
 		ld3320_write_reg(0x6F, 0xFF); 
 	} else {
 		ld3320_write_reg(0x19, LD_PLL_MP3_19);
@@ -274,7 +274,7 @@ void ld3320_AsrStart()
 uint8_t ld3320_AsrRun()
 {
 	ld3320_write_reg(0x35, MIC_VOL);
-    ld3320_write_reg(0xB3, 0x05);	// 用户阅读 开发手册 理解B3寄存器的调整对于灵敏度和识别距离的影响	
+    ld3320_write_reg(0xB3, 0x12);	// 用户阅读 开发手册 理解B3寄存器的调整对于灵敏度和识别距离的影响	
 							    // 配合MIC，越大越灵敏
 	ld3320_write_reg(0x1C, 0x09);
 	ld3320_write_reg(0xBD, 0x20);
@@ -285,8 +285,6 @@ uint8_t ld3320_AsrRun()
 
 	if (ld3320_Check_ASRBusyFlag_b2() == 0)
 		return 0;
-
-//			for (;;);
 
 	ld3320_write_reg(0xB2, 0xff);	
 	ld3320_write_reg(0x37, 0x06);
@@ -312,6 +310,8 @@ void ld3320_AsrAddFixed_ByString(char * pRecogString, uint8_t k)
 	ld3320_write_reg(0x08, 0x00);
 	Delay(1000);	
 
+	serial_println("add %s", pRecogString);
+
 	for (nAsrAddLength=0; nAsrAddLength<50; nAsrAddLength++) {
 		if (pRecogString[nAsrAddLength] == 0)
 			break;
@@ -333,6 +333,7 @@ uint8_t ld3320_AsrAddFixed(uint8_t **command, uint8_t count)
 	for (i=0; i<count; i++) {	 			
 		if(ld3320_Check_ASRBusyFlag_b2() == 0) {
 			flag = 0;
+			serial_println("b2 busy");
 			break;
 		}		
 		ld3320_AsrAddFixed_ByString(command[i], i);
@@ -404,6 +405,7 @@ void ld3320_set_vol(uint8_t vol)
 
 void ld3320_play()
 {
+	serial_println("%s", __func__);
 	uint8_t val;
 
 	val = ld3320_read_reg(0x1B);
@@ -435,6 +437,7 @@ void ld3320_play()
 
 void ld3320_load_mp3_data()
 {
+	serial_println("%s", __func__);
 	uint8_t val;
 	uint8_t ucStatus;
 
@@ -479,12 +482,10 @@ int ld3320_init()
 	ld3320_io_init();
 	ld3320_reset();
 
-	/*
 	serial_println("reg: 0x%02x", ld3320_read_reg(0x06));
 	serial_println("reg: 0x%02x", ld3320_read_reg(0x06));
 	serial_println("reg: 0x%02x", ld3320_read_reg(0x35));
 	serial_println("reg: 0x%02x", ld3320_read_reg(0xb3));
-	*/
 
 	vSemaphoreCreateBinary(xASRSemaphore);
 	vSemaphoreCreateBinary(xMP3Semaphore);
