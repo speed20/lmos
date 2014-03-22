@@ -44,6 +44,7 @@ uint32_t start = 1;
 
 extern xSemaphoreHandle xTestSemaphore;
 extern xSemaphoreHandle mpu6050Semaphore;
+extern xSemaphoreHandle xPulseSemaphore;
 extern USB_OTG_CORE_HANDLE USB_OTG_dev;
 extern xQueueHandle xIRQueue;
 
@@ -265,4 +266,13 @@ void Fail_Handler(void)
     /* Toggle Red LED */
     STM_EVAL_LEDToggle(LED2);
   }
+}
+
+void DMA2_Stream0_IRQHandler(void)
+{
+	long lHigherPriorityTaskWoken = pdFALSE;
+	//serial_println("trans complete");
+
+	xSemaphoreGiveFromISR(xPulseSemaphore, &lHigherPriorityTaskWoken );
+	portEND_SWITCHING_ISR(lHigherPriorityTaskWoken);
 }

@@ -254,6 +254,7 @@ volatile unsigned long ulFPUInterruptNesting = 0UL, ulMaxFPUInterruptNesting = 0
 interrupt. */
 xSemaphoreHandle xTestSemaphore = NULL;
 xSemaphoreHandle mpu6050Semaphore = NULL;
+xSemaphoreHandle xPulseSemaphore = NULL;
 //xSemaphoreHandle xIRSemaphore = NULL;
 
 /* The variable that is incremented by the task synchronised with the button
@@ -274,6 +275,7 @@ int main(void)
 
 	serial_print("hardware setup ok\r\n");
 
+	vSemaphoreCreateBinary(xPulseSemaphore);
 	xIRQueue = xQueueCreate(10, sizeof(uint32_t));
 
 	/* Start standard demo/test application flash tasks.  See the comments at
@@ -282,9 +284,10 @@ int main(void)
 	0 (at the top of this file).  See the comments at the top of this file for
 	more information. */
 	//vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
+	vStartPulseTask(mainFLOP_TASK_PRIORITY);
 	//vStartMPU6050Tasks(mainFLOP_TASK_PRIORITY);
-	vStartIRTestTask(mainIR_TASK_PRIORITY);
-	vStartASRTestTask(mainIR_TASK_PRIORITY);
+	//vStartIRTestTask(mainIR_TASK_PRIORITY);
+	//vStartASRTestTask(mainIR_TASK_PRIORITY);
 
 	/* The following function will only create more tasks and timers if
 	mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to 0 (at the top of this
@@ -633,7 +636,8 @@ void TIM2_Config(void)
 
 	/* Time base configuration */
 	TIM_TimeBaseStructure.TIM_Period = 0xffff; // 1 MHz down to 1 KHz (1 ms)
-	TIM_TimeBaseStructure.TIM_Prescaler = 840 - 1; // 24 MHz Clock down to 1 MHz (adjust per your clock)
+	//TIM_TimeBaseStructure.TIM_Prescaler = 840 - 1; // 24 MHz Clock down to 1 MHz (adjust per your clock)
+	TIM_TimeBaseStructure.TIM_Prescaler = 10 - 1; // 24 MHz Clock down to 1 MHz (adjust per your clock)
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);

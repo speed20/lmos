@@ -6,8 +6,8 @@ AR	= $(CROSS_COMPILE)ar
 LD	= $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
 
-AFLAGS	= -mthumb -mcpu=cortex-m4 -O2
-CFLAGS	= -mthumb -mcpu=cortex-m4 -O2
+AFLAGS	= -mthumb -mcpu=cortex-m4 -O3
+CFLAGS	= -mthumb -mcpu=cortex-m4 -O3
 LDFLAGS	= -Map $(OUT_DIR)/out.map
 
 LIBGCC	= $(shell $(CC) -mthumb -march=armv6t2 -print-libgcc-file-name)
@@ -71,12 +71,14 @@ tmp_objs  = main.o \
 		stm32f4xx_rcc.o \
 		stm32f4xx_usart.o \
 		stm32f4xx_syscfg.o \
-		stm32f4_discovery.o \
+		stm32f4xx_adc.o \
 		stm32f4xx_spi.o \
 		stm32f4xx_i2c.o \
 		stm32f4xx_tim.o \
 		stm32f4xx_it.o \
 		stm32f4xx_flash.o \
+		stm32f4xx_dma.o \
+		stm32f4_discovery.o \
 		usbd_core.o \
 		usbd_ioreq.o \
 		usbd_req.o \
@@ -106,6 +108,7 @@ tmp_objs  = main.o \
 		task_asr.o \
 		task_flash.o \
 		task_mpu6050.o \
+		task_pulse.o \
 		task_ir.o
 
 objs = $(addprefix $(OUT_DIR)/,$(tmp_objs))
