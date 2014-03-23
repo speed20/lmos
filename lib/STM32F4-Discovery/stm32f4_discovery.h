@@ -132,13 +132,19 @@ void STM_EVAL_LEDOff(Led_TypeDef Led);
 void STM_EVAL_LEDToggle(Led_TypeDef Led);
 void STM_EVAL_PBInit(Button_TypeDef Button, ButtonMode_TypeDef Button_Mode);
 uint32_t STM_EVAL_PBGetState(Button_TypeDef Button);
+
+typedef uint8_t bool;
+#define false 0
+#define true 1
+
 /**
   * @}
   */
 
 #define USARTn
 #define USART_PORT 2
-#define BAUDRATE 115200
+//#define BAUDRATE 115200
+#define BAUDRATE 460800
   
 #ifdef __cplusplus
 }
