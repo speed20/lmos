@@ -273,7 +273,7 @@ int main(void)
 	TIM2_Config();
 	TIM5_Config();
 
-	serial_print("hardware setup ok\r\n");
+	serial_println("hardware setup ok");
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
 	xIRQueue = xQueueCreate(10, sizeof(uint32_t));
@@ -293,7 +293,7 @@ int main(void)
 	mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to 0 (at the top of this
 	file).  See the comments at the top of this file for more information. */
 	prvOptionallyCreateComprehensveTestApplication();
-	serial_print("system ready to run...\r\n");
+	serial_println("system ready to run...");
 
 	/* Start the scheduler. */
 	vTaskStartScheduler();

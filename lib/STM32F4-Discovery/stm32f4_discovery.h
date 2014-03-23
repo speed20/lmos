@@ -137,7 +137,7 @@ uint32_t STM_EVAL_PBGetState(Button_TypeDef Button);
   */
 
 #define USARTn
-#define USART_PORT 0
+#define USART_PORT 2
 #define BAUDRATE 115200
   
 #ifdef __cplusplus

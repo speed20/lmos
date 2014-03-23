@@ -50,7 +50,16 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	ADC1_CH6_DMA_Config();
     ADC_SoftwareStartConv(ADC1);
 
-#if 1
+	while(1) {
+		AD_value = ADC_ConvertedValue;
+//		serial_print("%04d", AD_value);
+//		serial_write(USART_PORT, &AD_value, sizeof(AD_value));
+		Delay(1000000);
+//		sprintf(data, "%02x%02x", AD_value & 0xff, (AD_value >> 8) & 0xff);
+//		VCP_send_str(buf);
+	}
+
+#if 0
 	period = 0;
 	index = count = 0;
 	first = 1;

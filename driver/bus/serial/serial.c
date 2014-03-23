@@ -2,8 +2,16 @@
 #include "stm32f4_discovery.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #define MAX_NUM_UARTS 5
+
+#ifdef SERIAL_USE_DMA
+#define SERIAL_DMA_BUF_LEN 128
+volatile uint8_t flag_uart_send = 0;
+uint8_t serial_tx_buf[SERIAL_DMA_BUF_LEN];
+uint8_t serial_rx_buf[SERIAL_DMA_BUF_LEN];
+#endif
 
 static USART_TypeDef* UARTS[MAX_NUM_UARTS] = {
 	USART1,
@@ -19,6 +27,8 @@ void serial_init(uint32_t port, uint32_t baudrate)
 	USART_ClockInitTypeDef UartClockStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_TypeDef *usart;
+	DMA_InitTypeDef DMA_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 
 	if (port > 4) return ;
 
@@ -122,13 +132,69 @@ void serial_init(uint32_t port, uint32_t baudrate)
 			printf("invalid usart number\n");
 	}
 
+#ifdef SERIAL_USE_DMA
+	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream3_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
+	DMA_InitStructure.DMA_Channel = DMA_Channel_4;  
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(&(UARTS[port]->DR));
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)serial_tx_buf;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
+	DMA_InitStructure.DMA_BufferSize = SERIAL_DMA_BUF_LEN;
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;         
+	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_Full;
+	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
+	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
+	DMA_Init(DMA1_Stream3, &DMA_InitStructure);
+	DMA_ITConfig(DMA1_Stream3, DMA_IT_TC,ENABLE);              //DMA enable
+#endif
+
 	USART_StructInit(&UartStructure);
 	UartStructure.USART_BaudRate = baudrate;
 	USART_Init(UARTS[port], &UartStructure);
+	USART_ITConfig(UARTS[port], USART_IT_RXNE, ENABLE);
+	USART_DMACmd(UARTS[port], USART_DMAReq_Tx, ENABLE);
 
 	USART_Cmd(UARTS[port], ENABLE);
 }
 
+#ifdef SERIAL_USE_DMA
+void serial_write(uint32_t port, uint8_t *buf, uint32_t len)
+{
+	uint8_t offset, size, i;
+
+	offset = 0;
+	while (len > 0) {
+		if (len <= SERIAL_DMA_BUF_LEN)
+			size = len;
+		else
+			size = SERIAL_DMA_BUF_LEN;
+
+		while (flag_uart_send) ; /* wait dma complete */
+		flag_uart_send = 1;
+		memcpy(serial_tx_buf, buf+offset, size);
+		DMA_SetCurrDataCounter(DMA1_Stream3, size);
+		DMA_Cmd(DMA1_Stream3, ENABLE);
+
+		offset += size;
+		len -= size;
+	}
+}
+
+void serial_read(uint32_t port, uint8_t *buf, uint32_t len)
+{
+}
+#else
 void serial_write(uint32_t port, uint8_t *buf, uint32_t len)
 {
 	uint32_t i;
@@ -167,6 +233,7 @@ void serial_read_line(uint32_t port, char *str)
 
 	*str = '\0';
 }
+#endif
 
 
 #define PRINT_TO_USART

@@ -30,6 +30,7 @@
 #include "queue.h"
 #include "usb_core.h"
 #include "delay.h"
+#include "serial.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -47,6 +48,9 @@ extern xSemaphoreHandle mpu6050Semaphore;
 extern xSemaphoreHandle xPulseSemaphore;
 extern USB_OTG_CORE_HANDLE USB_OTG_dev;
 extern xQueueHandle xIRQueue;
+#ifdef SERIAL_USE_DMA
+extern volatile uint8_t flag_uart_send;
+#endif
 
 /******************************************************************************/
 /*            Cortex-M3 Processor Exceptions Handlers                         */
@@ -268,6 +272,7 @@ void Fail_Handler(void)
   }
 }
 
+/*
 void DMA2_Stream0_IRQHandler(void)
 {
 	long lHigherPriorityTaskWoken = pdFALSE;
@@ -276,3 +281,17 @@ void DMA2_Stream0_IRQHandler(void)
 	xSemaphoreGiveFromISR(xPulseSemaphore, &lHigherPriorityTaskWoken );
 	portEND_SWITCHING_ISR(lHigherPriorityTaskWoken);
 }
+*/
+
+#ifdef SERIAL_USE_DMA
+void DMA1_Stream3_IRQHandler(void)  
+{  
+    //DMA_ClearFlag(DMA1_Stream3, DMA_FLAG_TCIF4);  
+    DMA_ClearITPendingBit(DMA1_Stream3, DMA_IT_TCIF4);  
+	DMA_Cmd(DMA1_Stream3, DISABLE);
+
+    STM_EVAL_LEDToggle(LED2);
+
+    flag_uart_send = 0;  
+}
+#endif

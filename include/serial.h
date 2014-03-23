@@ -1,5 +1,6 @@
 #include "stm32f4_discovery.h"
 
+#define SERIAL_USE_DMA
 void serial_init(uint32_t port, uint32_t baudrate);
 void usart_print(uint32_t port, char *str);
 int16_t serial_print(const char * format, ...);
