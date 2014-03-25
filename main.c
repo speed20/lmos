@@ -234,7 +234,7 @@ static void prvButtonTestTask( void *pvParameters );
 static void prvOptionallyCreateComprehensveTestApplication( void );
 
 /* delay */
-static uint32_t Demo_USBConfig(void);
+static uint32_t USBConfig(void);
 static void USB_Test(void);
 static void Fail_Handler(void);
 static void TIM2_Config(void);
@@ -254,7 +254,6 @@ volatile unsigned long ulFPUInterruptNesting = 0UL, ulMaxFPUInterruptNesting = 0
 interrupt. */
 xSemaphoreHandle xTestSemaphore = NULL;
 xSemaphoreHandle mpu6050Semaphore = NULL;
-xSemaphoreHandle xPulseSemaphore = NULL;
 //xSemaphoreHandle xIRSemaphore = NULL;
 
 /* The variable that is incremented by the task synchronised with the button
@@ -270,12 +269,11 @@ int main(void)
 	/* Configure the hardware ready to run the test. */
 	prvSetupHardware();
 
-	TIM2_Config();
+//	TIM2_Config();
 	TIM5_Config();
 
 	serial_println("hardware setup ok");
 
-	vSemaphoreCreateBinary(xPulseSemaphore);
 	xIRQueue = xQueueCreate(10, sizeof(uint32_t));
 
 	/* Start standard demo/test application flash tasks.  See the comments at
@@ -421,7 +419,7 @@ static void prvSetupHardware( void )
 
 //	i2c_init(0, 400000);
 
-//	Demo_USBConfig();
+	USBConfig();
 	
 	/* Ensure all priority bits are assigned as preemption priority bits. */
 	NVIC_PriorityGroupConfig( NVIC_PriorityGroup_4 );
@@ -603,19 +601,19 @@ void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName 
   * @param  None
   * @retval None
   */
-static uint32_t Demo_USBConfig(void)
+static uint32_t USBConfig(void)
 {
   USBD_Init(&USB_OTG_dev,
             USB_OTG_FS_CORE_ID,
             &USR_desc,
-//            &USBD_HID_cb,
+   //         &USBD_HID_cb,
 			&USBD_CDC_cb,
             &USR_cb);
   
   return 0;
 } 
 
-void TIM2_Config(void)
+void TIM2_Config()
 {
 	NVIC_InitTypeDef NVIC_InitStructure;
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
