@@ -77,21 +77,21 @@ typedef enum
   */
 #define LEDn                             4
 
-#define LED1_PIN                         GPIO_Pin_4
-#define LED1_GPIO_PORT                   GPIOA
-#define LED1_GPIO_CLK                    RCC_AHB1Periph_GPIOA  
+#define LED1_PIN                         GPIO_Pin_12
+#define LED1_GPIO_PORT                   GPIOD
+#define LED1_GPIO_CLK                    RCC_AHB1Periph_GPIOD
   
-#define LED2_PIN                         GPIO_Pin_5
-#define LED2_GPIO_PORT                   GPIOA
-#define LED2_GPIO_CLK                    RCC_AHB1Periph_GPIOA  
+#define LED2_PIN                         GPIO_Pin_13
+#define LED2_GPIO_PORT                   GPIOD
+#define LED2_GPIO_CLK                    RCC_AHB1Periph_GPIOD
   
-#define LED3_PIN                         GPIO_Pin_6
-#define LED3_GPIO_PORT                   GPIOA
-#define LED3_GPIO_CLK                    RCC_AHB1Periph_GPIOA  
+#define LED3_PIN                         GPIO_Pin_14
+#define LED3_GPIO_PORT                   GPIOD
+#define LED3_GPIO_CLK                    RCC_AHB1Periph_GPIOD
   
-#define LED4_PIN                         GPIO_Pin_7
-#define LED4_GPIO_PORT                   GPIOA
-#define LED4_GPIO_CLK                    RCC_AHB1Periph_GPIOA
+#define LED4_PIN                         GPIO_Pin_15
+#define LED4_GPIO_PORT                   GPIOD
+#define LED4_GPIO_CLK                    RCC_AHB1Periph_GPIOD
 /**
   * @}
   */ 
@@ -99,7 +99,7 @@ typedef enum
 /** @addtogroup STM32F4_DISCOVERY_LOW_LEVEL_BUTTON
   * @{
   */  
-#define BUTTONn                          4
+#define BUTTONn                          2
 
 /**
  * @brief Wakeup push-button
