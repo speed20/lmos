@@ -108,11 +108,11 @@ void serial_init(uint32_t port, uint32_t baudrate)
 			GPIO_Init(GPIOD, &GPIO_InitStructure);
 
 			/*
-			myNVIC_InitStructure.NVIC_IRQChannel = UART5_IRQn;
-			myNVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0;
-			myNVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
-			myNVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-			NVIC_Init(&myNVIC_InitStructure); 
+			NVIC_InitStructure.NVIC_IRQChannel = UART5_IRQn;
+			NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0;
+			NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+			NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+			NVIC_Init(&NVIC_InitStructure); 
 			*/
 
 			GPIO_PinAFConfig(GPIOC, GPIO_PinSource12, GPIO_AF_UART5);
@@ -134,7 +134,7 @@ void serial_init(uint32_t port, uint32_t baudrate)
 
 #ifdef SERIAL_USE_DMA
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream3_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
