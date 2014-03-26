@@ -179,6 +179,11 @@ void VCP_send_str(uint8_t* buf)
 	VCP_DataTx(buf, i);
 }
 
+void VCP_send_data(uint8_t *buf, uint32_t len)
+{
+	VCP_DataTx(buf, len);
+}
+
 /**
   * @brief  VCP_DataTx
   *         CDC received data to be send over USB IN endpoint are managed in 
