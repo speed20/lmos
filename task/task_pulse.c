@@ -13,7 +13,7 @@
 
 static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
 xSemaphoreHandle xPulseSemaphore = NULL;
-volatile uint16_t adc_value; //[2][ADC_DMA_BUF_LEN];
+volatile uint16_t adc_value[ADC_DMA_BUF_LEN];
 void ADC1_CH6_DMA_Config(void);
 void adc_sample_freq_set(uint32_t freq);
 void set_pcm_out_freq(uint32_t freq, uint32_t duty);
@@ -23,33 +23,46 @@ void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
 	xTaskCreate(vPulseTask, (signed char *)"Pulse", 4096, NULL, uxPriority, (xTaskHandle *)NULL);
 }
 
-enum {
-	STOP = 0,
-	PRE_START,
-	START,
-};
-
-struct point {
-	int32_t t;
-	uint32_t v;
-};
-
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
-	uint16_t i, x;
+	uint16_t i, x, last;
+	uint8_t v;
+	uint32_t counter, t0, diff, level, last_level, freq;
+	uint8_t buf[64];
+	uint32_t sample_freq = 50000;
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
 	xSemaphoreTake(xPulseSemaphore, 0);
 	set_pcm_out_freq(200, 20); /* 2k, 20% duty */
-	adc_sample_freq_set(50000);
+	adc_sample_freq_set(sample_freq);
 	ADC1_CH6_DMA_Config();
 	ADC_SoftwareStartConv(ADC1);
+//	set_timer(TIM3, 2000);
 	serial_println("start pulse task");
 
 #if 1
+	counter = 0;
+	t0 = 0;
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
-		VCP_send_data(&adc_value, 2);
+		if (adc_value[0] >= 300) {
+			level = 1;
+		} else {
+			level = 0;
+		}
+
+		if (level == 1 && last_level == 0) {
+			diff = counter - t0 + 0xffffffff;
+			freq = sample_freq * 100 / diff;
+			sprintf(buf, "%d\n\r", freq);
+			VCP_send_str(buf);
+			t0 = counter;
+		}
+
+		last_level = level;
+		counter++;
+
+//		VCP_send_data(&v, 1);
 		/*
 		if (DMA_GetCurrentMemoryTarget(DMA2_Stream0) == 0) {
 			x = 0;
@@ -93,7 +106,7 @@ void ADC1_CH6_DMA_Config(void)
 	/* DMA2 Stream0 channe0 configuration **************************************/
 	DMA_InitStructure.DMA_Channel = DMA_Channel_0;  
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(&ADC1->DR);
-	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&adc_value;
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&adc_value[0];
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
 	DMA_InitStructure.DMA_BufferSize = ADC_DMA_BUF_LEN;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -132,14 +145,14 @@ void ADC1_CH6_DMA_Config(void)
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
 	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
-	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
+	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_RisingFalling;
 	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_CC2;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	ADC_InitStructure.ADC_NbrOfConversion = 1;
 	ADC_Init(ADC1, &ADC_InitStructure);
 
 	/* ADC1 regular channe6 configuration *************************************/
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 1, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 1, ADC_SampleTime_3Cycles);
 
 #if 0
 	/* Watchdog */
@@ -219,7 +232,7 @@ void adc_sample_freq_set(uint32_t freq)
 	uint16_t prescaler, period;
 
 	prescaler = 42 - 1; // 2M
-	period = 84000000 / (prescaler + 1) / freq;
+	period = 84000000 / (prescaler + 1) / freq - 1;
 
 	TIM_DeInit(TIM2);
 	/* TIM2 clock enable */
@@ -235,6 +248,7 @@ void adc_sample_freq_set(uint32_t freq)
 //	TIM_ClearFlag(TIM2, TIM_FLAG_Update);
 //	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
 
+	TIM_OCStructInit(&TIM_OCInitStructure);
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Toggle;
 	TIM_OCInitStructure.TIM_Pulse = period;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
@@ -243,4 +257,32 @@ void adc_sample_freq_set(uint32_t freq)
 
 	/* TIM2 enable counter */
 	TIM_Cmd(TIM2, ENABLE);
+}
+
+void set_timer(TIM_TypeDef *TIMx, uint32_t freq)
+{
+	serial_println("set timer %dhz", freq);
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+	GPIO_InitTypeDef GPIO_InitStructure;
+	uint16_t prescaler, period;
+
+	prescaler = 42 - 1; // 2M
+	period = 84000000 / (prescaler + 1) / freq - 1;
+
+	TIM_DeInit(TIMx);
+	/* TIM2 clock enable */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+
+	/* Time base configuration */
+	TIM_TimeBaseStructure.TIM_Period = period;
+	TIM_TimeBaseStructure.TIM_Prescaler = prescaler;
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(TIMx, &TIM_TimeBaseStructure);
+	/* TIM IT enable */
+	TIM_ClearFlag(TIMx, TIM_FLAG_Update);
+	TIM_ITConfig(TIMx, TIM_IT_Update, ENABLE);
+
+	/* TIM2 enable counter */
+	TIM_Cmd(TIMx, ENABLE);
 }
