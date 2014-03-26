@@ -9,11 +9,11 @@
 #include "stm32f4_discovery.h"
 #include "stm32f4xx_adc.h"
 
-#define ADC_DMA_BUF_LEN 1024
+#define ADC_DMA_BUF_LEN 1
 
 static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
 xSemaphoreHandle xPulseSemaphore = NULL;
-volatile uint16_t adc_value[2][ADC_DMA_BUF_LEN];
+volatile uint16_t adc_value; //[2][ADC_DMA_BUF_LEN];
 void ADC1_CH6_DMA_Config(void);
 void adc_sample_freq_set(uint32_t freq);
 void set_pcm_out_freq(uint32_t freq, uint32_t duty);
@@ -49,17 +49,20 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 #if 1
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
+		VCP_send_data(&adc_value, 2);
+		/*
 		if (DMA_GetCurrentMemoryTarget(DMA2_Stream0) == 0) {
 			x = 0;
 		} else {
 			x = 1;
 		}
+		*/
 		/*
 		for (i=0; i<ADC_DMA_BUF_LEN; i++)  {
 			VCP_send_data(&adc_value[x][i], 2);
 		}
 		*/
-		VCP_send_data(adc_value[x], 2*ADC_DMA_BUF_LEN);
+//		VCP_send_data(&adc_value, 2*ADC_DMA_BUF_LEN);
 	}
 #endif
 }
@@ -90,7 +93,7 @@ void ADC1_CH6_DMA_Config(void)
 	/* DMA2 Stream0 channe0 configuration **************************************/
 	DMA_InitStructure.DMA_Channel = DMA_Channel_0;  
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(&ADC1->DR);
-	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)(&adc_value[0]);
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&adc_value;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
 	DMA_InitStructure.DMA_BufferSize = ADC_DMA_BUF_LEN;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -105,8 +108,8 @@ void ADC1_CH6_DMA_Config(void)
 	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 	DMA_Init(DMA2_Stream0, &DMA_InitStructure);
 
-	DMA_DoubleBufferModeConfig(DMA2_Stream0, (uint32_t)&adc_value[1], DMA_Memory_0);
-	DMA_DoubleBufferModeCmd(DMA2_Stream0, ENABLE);
+//	DMA_DoubleBufferModeConfig(DMA2_Stream0, (uint32_t)&adc_value[1], DMA_Memory_0);
+//	DMA_DoubleBufferModeCmd(DMA2_Stream0, ENABLE);
 
 	DMA_ITConfig(DMA2_Stream0, DMA_IT_TC,ENABLE);              //DMA enable
 	DMA_Cmd(DMA2_Stream0, ENABLE);
@@ -183,8 +186,8 @@ void set_pcm_out_freq(uint32_t freq, uint32_t duty)
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
 	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Period = 10000;
-	TIM_TimeBaseStructure.TIM_Prescaler = 168 - 1 ;
+	TIM_TimeBaseStructure.TIM_Period = 1000000 / freq;
+	TIM_TimeBaseStructure.TIM_Prescaler = 168 - 1; // 1M
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
@@ -194,7 +197,7 @@ void set_pcm_out_freq(uint32_t freq, uint32_t duty)
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = duty * 100;
+	TIM_OCInitStructure.TIM_Pulse = duty * 10000/ freq;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -209,7 +212,7 @@ void set_pcm_out_freq(uint32_t freq, uint32_t duty)
 
 void adc_sample_freq_set(uint32_t freq)
 {
-	serial_println("set adc sample freq");
+	serial_println("set adc sample freq to %dhz", freq);
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;

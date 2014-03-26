@@ -48,6 +48,7 @@ extern xSemaphoreHandle mpu6050Semaphore;
 extern xSemaphoreHandle xPulseSemaphore;
 extern USB_OTG_CORE_HANDLE USB_OTG_dev;
 extern xQueueHandle xIRQueue;
+extern volatile uint16_t adc_value;
 #ifdef SERIAL_USE_DMA
 extern volatile uint8_t flag_uart_send;
 #endif
@@ -273,7 +274,6 @@ void Fail_Handler(void)
 }
 
 //#define ADC_DMA_BUF_LEN 1024
-//extern volatile uint16_t adc_value[2][ADC_DMA_BUF_LEN];
 void DMA2_Stream0_IRQHandler(void)
 {
 	long lHigherPriorityTaskWoken = pdFALSE;
@@ -284,12 +284,14 @@ void DMA2_Stream0_IRQHandler(void)
 
 	if (DMA_GetITStatus(DMA2_Stream0, DMA_IT_TCIF0)) {
 		DMA_ClearFlag(DMA2_Stream0, DMA_FLAG_TCIF0);
+		/*
 		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TCIF0);  
 		if (DMA_GetCurrentMemoryTarget(DMA2_Stream0) == 0) {
 			x = 0;
 		} else {
 			x = 1;
 		}
+		*/
 
 		/*
 		for (i=0; i<ADC_DMA_BUF_LEN; i++)  {
@@ -304,6 +306,7 @@ void DMA2_Stream0_IRQHandler(void)
 
 		xSemaphoreGiveFromISR(xPulseSemaphore, &lHigherPriorityTaskWoken);
 		portEND_SWITCHING_ISR(lHigherPriorityTaskWoken);
+//		VCP_send_data(&adc_value, 2);
 	}
 }
 
