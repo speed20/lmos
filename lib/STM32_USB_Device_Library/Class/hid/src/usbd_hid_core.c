@@ -187,7 +187,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   0x00,         /*bCountryCode: Hardware target country*/
   0x01,         /*bNumDescriptors: Number of HID class descriptors to follow*/
   0x22,         /*bDescriptorType*/
-  HID_MPU6050_32_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
+  HID_ADC_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
   0x00,
   /******************** Descriptor of Mouse endpoint ********************/
   /* 27 */
@@ -351,6 +351,23 @@ __ALIGN_BEGIN static uint8_t HID_MPU6050_32_ReportDesc[HID_MPU6050_32_REPORT_DES
     0xc0                           // END_COLLECTION
 };
 
+__ALIGN_BEGIN static uint8_t HID_ADC_ReportDesc[HID_ADC_REPORT_DESC_SIZE] __ALIGN_END = {
+    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
+    0x09, 0x00,                    // USAGE (Undefined)
+    0xa1, 0x01,                    // COLLECTION (Application)
+    0x09, 0x00,                    //   USAGE (Pointer)
+    0xa1, 0x00,                    //   COLLECTION (Physical)
+    0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
+    0x09, 0x30,                    //     USAGE (X)
+    0x09, 0x31,                    //     USAGE (Y)
+    0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
+    0x27, 0xff, 0xff, 0x00, 0x00,  //     LOGICAL_MAXIMUM (65535)
+    0x75, 0x10,                    //     REPORT_SIZE (16)
+    0x95, 0x02,                    //     REPORT_COUNT (2)
+    0x81, 0x02,                    //     INPUT (Data,Var,Abs,Vol)
+    0xc0,                          //	END_COLLECTION
+    0xc0                           // END_COLLECTION
+};
 
 /**
   * @}
@@ -457,8 +474,8 @@ static uint8_t  USBD_HID_Setup (void  *pdev,
     case USB_REQ_GET_DESCRIPTOR: 
       if( req->wValue >> 8 == HID_REPORT_DESC)
       {
-        len = MIN(HID_MPU6050_32_REPORT_DESC_SIZE , req->wLength);
-        pbuf = HID_MPU6050_32_ReportDesc;
+        len = MIN(HID_ADC_REPORT_DESC_SIZE , req->wLength);
+        pbuf = HID_ADC_ReportDesc;
       }
       else if( req->wValue >> 8 == HID_DESCRIPTOR_TYPE)
       {
