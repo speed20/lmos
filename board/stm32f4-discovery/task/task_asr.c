@@ -6,8 +6,8 @@
 #include "semphr.h"
 
 #include "stm32f4_discovery.h"
-#include "ld3320.h"
-#include "sound.h"
+#include "asr/ld3320.h"
+#include "asr/sound.h"
 
 static portTASK_FUNCTION_PROTO(vASRTestTask, pvParameters);
 

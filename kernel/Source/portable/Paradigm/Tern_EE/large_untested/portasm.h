@@ -1,5 +1,6 @@
 /*
-    FreeRTOS V7.5.2 - Copyright (C) 2013 Real Time Engineers Ltd.
+    FreeRTOS V8.0.0 - Copyright (C) 2014 Real Time Engineers Ltd. 
+    All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
 
@@ -62,8 +63,8 @@
     1 tab == 4 spaces!
 */
 
-typedef void tskTCB;
-extern volatile tskTCB * volatile pxCurrentTCB;
+typedef void TCB_t;
+extern volatile TCB_t * volatile pxCurrentTCB;
 extern void vTaskSwitchContext( void );
 
 /*

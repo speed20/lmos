@@ -48,7 +48,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	set_pcm_out_freq(1000, 50); /* 2k, 20% duty */
 	adc_sample_freq_set(sample_freq);
 	ADC1_CH6_DMA_Config();
-//	ADC_SoftwareStartConv(ADC1);
+	ADC_SoftwareStartConv(ADC1);
 	serial_println("start pulse task");
 
 	counter = 0;
@@ -59,7 +59,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
 #if 1
-		if (adc_value[0] >= 400) {
+		if (adc_value[0] >= 300) {
 			level = HIGH;
 		} else {
 			level = LOW;

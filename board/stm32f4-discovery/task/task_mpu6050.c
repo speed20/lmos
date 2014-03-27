@@ -7,7 +7,7 @@
 #include "semphr.h"
 
 #include "usb_core.h"
-#include "mpu6050.h"
+#include <invense/mpu6050.h>
 #include "mpulib.h"
 #include "arm_math.h"
 

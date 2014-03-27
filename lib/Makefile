@@ -1,0 +1,16 @@
+ifdef CONFIG_STM32_USB_HOST_Library
+endif
+ifdef CONFIG_STM32F4xx_StdPeriph_Driver
+endif
+ifdef CONFIG_mpulib
+endif
+ifdef CONFIG_CMSIS
+endif
+ifdef CONFIG_STM32_USB_Device_Library
+endif
+ifdef CONFIG_STM32_USB_OTG_Driver
+endif
+ifdef CONFIG_STM32F4-Discovery
+endif
+ifdef CONFIG_eMPL
+endif
