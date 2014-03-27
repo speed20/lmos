@@ -23,61 +23,101 @@ void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
 	xTaskCreate(vPulseTask, (signed char *)"Pulse", 4096, NULL, uxPriority, (xTaskHandle *)NULL);
 }
 
+enum {
+	LOW		= 0,
+	HIGH	= 1
+};
+
+#define RAISING(last, new) (last == LOW && new == HIGH)
+#define FALLING(last, new) (last == HIGH && new == LOW)
+
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
-	uint16_t i, x, last;
-	uint8_t v;
-	uint32_t counter, t0, diff, level, last_level, freq;
+	uint16_t i, last_value;
+	volatile uint16_t x;
+	uint8_t level, last_level, start_condation;
+	uint32_t counter, t0, diff, freq, period, tolerance, index;
 	uint8_t buf[64];
-	uint32_t sample_freq = 50000;
+	uint32_t sample_freq = 100000;
+	uint8_t bit[1024];
+	uint16_t hist[16];
+	uint32_t sum;
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
 	xSemaphoreTake(xPulseSemaphore, 0);
-	set_pcm_out_freq(200, 20); /* 2k, 20% duty */
+	set_pcm_out_freq(1000, 50); /* 2k, 20% duty */
 	adc_sample_freq_set(sample_freq);
 	ADC1_CH6_DMA_Config();
-	ADC_SoftwareStartConv(ADC1);
-//	set_timer(TIM3, 2000);
+//	ADC_SoftwareStartConv(ADC1);
 	serial_println("start pulse task");
 
-#if 1
 	counter = 0;
 	t0 = 0;
+	start_condation = 8;
+	index = 0;
+	period = 0;
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
-		if (adc_value[0] >= 300) {
-			level = 1;
+#if 1
+		if (adc_value[0] >= 400) {
+			level = HIGH;
 		} else {
-			level = 0;
+			level = LOW;
 		}
 
-		if (level == 1 && last_level == 0) {
+		if (RAISING(last_level, level)) {
 			diff = counter - t0 + 0xffffffff;
-			freq = sample_freq * 100 / diff;
-			sprintf(buf, "%d\n\r", freq);
-			VCP_send_str(buf);
-			t0 = counter;
+			sprintf(buf, "^: %d\n\r", diff);
+//			VCP_send_str(buf);
+			if (start_condation > 0) {
+				if (start_condation == 1) {
+					period = diff;
+					tolerance = period / 4;
+					freq = sample_freq * 100 / period;
+					sprintf(buf, "period: %d freq: %d\n\r", period, freq);
+					VCP_send_str(buf);
+				}
+				t0 = counter; // data start 
+				start_condation--;
+			} else {
+				if (period - tolerance < diff && diff < period + tolerance) {
+					bit[index++] = 0;
+					t0 = counter;
+				}
+			}
+		} else if (FALLING(last_level, level)) {
+			x = 0;
+			diff = counter - t0 + 0xffffffff;
+			sprintf(buf, "V: %d\n\r", diff);
+//			VCP_send_str(buf);
+			if (start_condation == 0) {
+				if (period - tolerance < diff && diff < period + tolerance) {
+					bit[index++] = 1;
+					t0 = counter;
+				}
+			}
 		}
 
+		if (index >= 1024) index = 0;
+
+		if (counter - t0 >= period * 3 / 2) { // idle
+			for (i=0; i<index; i++) {
+				serial_println("%d", bit[i]);
+			}
+
+			index = 0;
+			start_condation = 8;
+			period = 0;
+		}
+				
 		last_level = level;
 		counter++;
-
-//		VCP_send_data(&v, 1);
-		/*
-		if (DMA_GetCurrentMemoryTarget(DMA2_Stream0) == 0) {
-			x = 0;
-		} else {
-			x = 1;
-		}
-		*/
-		/*
-		for (i=0; i<ADC_DMA_BUF_LEN; i++)  {
-			VCP_send_data(&adc_value[x][i], 2);
-		}
-		*/
-//		VCP_send_data(&adc_value, 2*ADC_DMA_BUF_LEN);
-	}
 #endif
+
+//		sprintf(buf, "%d\n\r", x);
+//		VCP_send_data(&x, 2);
+//		VCP_send_str(buf);
+	}
 }
 
 /**
@@ -252,7 +292,9 @@ void adc_sample_freq_set(uint32_t freq)
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Toggle;
 	TIM_OCInitStructure.TIM_Pulse = period;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
 	TIM_OC2Init(TIM2, &TIM_OCInitStructure);
 
 	/* TIM2 enable counter */
