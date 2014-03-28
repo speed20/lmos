@@ -8,7 +8,7 @@ LD	= $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
 
 export AFLAGS	:= -mthumb -mcpu=cortex-m4 -O2
-export CFLAGS	:= -mthumb -mcpu=cortex-m4 -O2 -DSTM32F40XX
+export CFLAGS	:= -mthumb -mcpu=cortex-m4 -O2
 LDFLAGS	= -Map $(OUT_DIR)/out.map
 
 LIBGCC	= $(shell $(CC) -mthumb -march=armv6t2 -print-libgcc-file-name)

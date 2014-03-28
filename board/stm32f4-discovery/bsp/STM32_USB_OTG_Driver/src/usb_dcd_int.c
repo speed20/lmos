@@ -21,7 +21,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usb_dcd_int.h"
-#define USART_PORT 2
 /** @addtogroup USB_OTG_DRIVER
 * @{
 */

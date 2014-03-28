@@ -6,10 +6,9 @@
 #include "queue.h"
 
 /* Demo application includes. */
-#include "led.h"
+#include "led/led.h"
 
 /* Hardware and starter kit includes. */
-#include "stm32f4_discovery.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 #include "serial.h"
@@ -40,7 +39,7 @@
 
 /*-----------------------------------------------------------*/
 static void prvSetupHardware( void );
-static void prvCheckTimerCallback( xTimerHandle xTimer );
+static void prvCheckTimerCallback( TimeOut_t xTimer );
 static void prvSetupNestedFPUInterruptsTest( void );
 static void prvButtonTestTask( void *pvParameters );
 static void prvOptionallyCreateComprehensveTestApplication( void );
@@ -48,13 +47,13 @@ static void prvOptionallyCreateComprehensveTestApplication( void );
 /* delay */
 static uint32_t USBConfig(void);
 volatile unsigned long ulFPUInterruptNesting = 0UL, ulMaxFPUInterruptNesting = 0UL;
-xSemaphoreHandle xTestSemaphore = NULL;
-xSemaphoreHandle mpu6050Semaphore = NULL;
-//xSemaphoreHandle xIRSemaphore = NULL;
+SemaphoreHandle_t xTestSemaphore = NULL;
+SemaphoreHandle_t mpu6050Semaphore = NULL;
+//SemaphoreHandle_t xIRSemaphore = NULL;
 volatile unsigned long ulButtonPressCounts = 0UL;
 USB_OTG_CORE_HANDLE  USB_OTG_dev;
 uint8_t DemoEnterCondition = 0x00;
-xQueueHandle xIRQueue = NULL;
+QueueHandle_t xIRQueue = NULL;
 
 int main(void)
 {
@@ -78,11 +77,11 @@ int main(void)
 
 	vTaskStartScheduler();
 	serial_print("fatal error!\r\n");
-	for( ;; );	
+	for(;;);	
 }
 /*-----------------------------------------------------------*/
 
-static void prvCheckTimerCallback( xTimerHandle xTimer )
+static void prvCheckTimerCallback( TimeOut_t xTimer )
 {
 }
 
@@ -174,7 +173,7 @@ void vApplicationIdleHook( void )
 }
 /*-----------------------------------------------------------*/
 
-void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName )
+void vApplicationStackOverflowHook( TaskHandle_t pxTask, signed char *pcTaskName )
 {
 	( void ) pcTaskName;
 	( void ) pxTask;

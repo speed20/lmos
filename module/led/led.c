@@ -65,30 +65,23 @@
 /*-----------------------------------------------------------
  * Simple GPIO (parallel port) IO routines.
  *-----------------------------------------------------------*/
-
-/* Kernel includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-
 /* Standard demo include. */
 #include "led.h"
 
 /* Starter kit includes. */
 //#include "board.h"
-#include "stm32f4_discovery.h"
+//#include "global_includes.h"
 
 /* Only the LEDs on one of the two seven segment displays are used. */
-#define partstMAX_LEDS		4
+#define partstMAX_LEDS		2
 
-static const Led_TypeDef xLEDs[ partstMAX_LEDS ] = { LED1, LED2, LED3, LED4 };
+static const Led_TypeDef xLEDs[ partstMAX_LEDS ] = {LED3, LED4 };
 
 /*-----------------------------------------------------------*/
 
 void vParTestInitialise( void )
 {
 	/* Initialise all four LEDs that are built onto the starter kit. */
-	STM_EVAL_LEDInit( LED1 );
-	STM_EVAL_LEDInit( LED2 );
 	STM_EVAL_LEDInit( LED3 );
 	STM_EVAL_LEDInit( LED4 );
 }

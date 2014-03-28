@@ -1,30 +1,5 @@
-/**
-  ******************************************************************************
-  * @file    stm32f4xx_it.c
-  * @author  MCD Application Team
-  * @version V1.0.0
-  * @date    19-September-2011
-  * @brief   Main Interrupt Service Routines.
-  *          This file provides all exceptions handler and peripherals interrupt
-  *          service routine.
-  ******************************************************************************
-  * @attention
-  *
-  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
-  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
-  * TIME. AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY
-  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
-  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
-  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
-  *
-  * <h2><center>&copy; COPYRIGHT 2011 STMicroelectronics</center></h2>
-  ******************************************************************************
-  */ 
-
-/* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
 #include "stm32f4xx_it.h"
-#include "stm32f4_discovery.h"
 #include "task.h"
 #include "semphr.h"
 #include "queue.h"
@@ -32,97 +7,55 @@
 #include "delay.h"
 #include "serial.h"
 
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
 #define CURSOR_STEP     7
 
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
 uint32_t t1, t2;
 uint8_t button_flag = 0;
 uint8_t update_flag = 0;
 uint32_t start = 1;
 
-extern xSemaphoreHandle xTestSemaphore;
-extern xSemaphoreHandle mpu6050Semaphore;
-extern xSemaphoreHandle xPulseSemaphore;
+extern SemaphoreHandle_t xTestSemaphore;
+extern SemaphoreHandle_t mpu6050Semaphore;
+extern SemaphoreHandle_t xPulseSemaphore;
 extern USB_OTG_CORE_HANDLE USB_OTG_dev;
-extern xQueueHandle xIRQueue;
+extern QueueHandle_t xIRQueue;
 extern volatile uint16_t adc_value;
 #ifdef SERIAL_USE_DMA
 extern volatile uint8_t flag_uart_send;
 #endif
 
-/******************************************************************************/
-/*            Cortex-M3 Processor Exceptions Handlers                         */
-/******************************************************************************/
-
-/**
-  * @brief   This function handles NMI exception.
-  * @param  None
-  * @retval None
-  */
 void NMI_Handler(void)
 {
 }
 
-/**
-  * @brief  This function handles Hard Fault exception.
-  * @param  None
-  * @retval None
-  */
 void HardFault_Handler(void)
 {
-  /* Go to infinite loop when Hard Fault exception occurs */
-  while (1)
-  {
+  while (1) {
+	vParTestToggleLED(LED3);	
   }
 }
 
-/**
-  * @brief  This function handles Memory Manage exception.
-  * @param  None
-  * @retval None
-  */
 void MemManage_Handler(void)
 {
-  /* Go to infinite loop when Memory Manage exception occurs */
-  while (1)
-  {
+  while (1) {
+//	vParTestToggleLED(LED4);
   }
 }
 
-/**
-  * @brief  This function handles Bus Fault exception.
-  * @param  None
-  * @retval None
-  */
 void BusFault_Handler(void)
 {
-  /* Go to infinite loop when Bus Fault exception occurs */
-  while (1)
-  {
+  while (1) {
+//	vParTestToggleLED(LED3);	
   }
 }
 
-/**
-  * @brief  This function handles Usage Fault exception.
-  * @param  None
-  * @retval None
-  */
 void UsageFault_Handler(void)
 {
-  /* Go to infinite loop when Usage Fault exception occurs */
-  while (1)
-  {
+  while (1) {
+//	vParTestToggleLED(LED3);	
   }
 }
 
-/**
-  * @brief  This function handles Debug Monitor exception.
-  * @param  None
-  * @retval None
-  */
 void DebugMon_Handler(void)
 {
 }
@@ -148,7 +81,7 @@ void TIM2_IRQHandler(void)
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 
-	vParTestToggleLED(LED2);	
+	vParTestToggleLED(LED3);	
 }
 /*-----------------------------------------------------------*/
 
@@ -203,7 +136,7 @@ void EXTI15_10_IRQHandler(void)
 
 	/* Only line 6 is enabled, so there is no need to test which line generated
 	the interrupt. */
-	EXTI_ClearITPendingBit(USER_BUTTON1_EXTI_LINE);
+	EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
 	
 	/* This interrupt does nothing more than demonstrate how to synchronise a
 	task with an interrupt.  First the handler releases a semaphore.
@@ -269,7 +202,7 @@ void Fail_Handler(void)
   while(1)
   {
     /* Toggle Red LED */
-    STM_EVAL_LEDToggle(LED2);
+    STM_EVAL_LEDToggle(LED3);
   }
 }
 
@@ -301,7 +234,7 @@ void DMA2_Stream0_IRQHandler(void)
 		*/
 
 		if (count % 10000)
-			STM_EVAL_LEDToggle(LED1);
+			STM_EVAL_LEDToggle(LED3);
 		count++;
 
 		xSemaphoreGiveFromISR(xPulseSemaphore, &lHigherPriorityTaskWoken);

@@ -5,7 +5,6 @@
 #include "task.h"
 #include "semphr.h"
 
-#include "stm32f4_discovery.h"
 #include "asr/ld3320.h"
 #include "asr/sound.h"
 
@@ -13,7 +12,7 @@ static portTASK_FUNCTION_PROTO(vASRTestTask, pvParameters);
 
 void vStartASRTestTask(unsigned portBASE_TYPE uxPriority)
 {
-	xTaskCreate(vASRTestTask, (signed char *)"ASR", 1024, NULL, uxPriority, (xTaskHandle *)NULL);
+	xTaskCreate(vASRTestTask, (signed char *)"ASR", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
 }
 
 enum {

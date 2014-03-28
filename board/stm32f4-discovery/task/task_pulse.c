@@ -6,13 +6,12 @@
 #include "semphr.h"
 #include "usb_core.h"
 
-#include "stm32f4_discovery.h"
 #include "stm32f4xx_adc.h"
 
 #define ADC_DMA_BUF_LEN 1
 
 static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
-xSemaphoreHandle xPulseSemaphore = NULL;
+SemaphoreHandle_t xPulseSemaphore = NULL;
 volatile uint16_t adc_value[ADC_DMA_BUF_LEN];
 void ADC1_CH6_DMA_Config(void);
 void adc_sample_freq_set(uint32_t freq);
@@ -20,7 +19,7 @@ void set_pcm_out_freq(uint32_t freq, uint32_t duty);
 
 void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
 {
-	xTaskCreate(vPulseTask, (signed char *)"Pulse", 4096, NULL, uxPriority, (xTaskHandle *)NULL);
+	xTaskCreate(vPulseTask, (signed char *)"Pulse", 4096, NULL, uxPriority, (TaskHandle_t *)NULL);
 }
 
 enum {

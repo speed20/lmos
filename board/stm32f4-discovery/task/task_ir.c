@@ -5,17 +5,15 @@
 #include "task.h"
 #include "semphr.h"
 
-#include "stm32f4_discovery.h"
-
 static portTASK_FUNCTION_PROTO(vIRTestTask, pvParameters);
 
 extern uint8_t start;
-extern xSemaphoreHandle xIRSemaphore;
-extern xQueueHandle xIRQueue;
+extern SemaphoreHandle_t xIRSemaphore;
+extern QueueHandle_t xIRQueue;
 
 void vStartIRTestTask(unsigned portBASE_TYPE uxPriority)
 {
-	xTaskCreate(vIRTestTask, (signed char *)"IR", 1024, NULL, uxPriority, (xTaskHandle *)NULL);
+	xTaskCreate(vIRTestTask, (signed char *)"IR", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
 }
 
 struct wave_data {
@@ -42,7 +40,7 @@ static portTASK_FUNCTION(vIRTestTask, pvParameters)
 
 	for(;;)
 	{
-		if (xQueueReceive(xIRQueue, (void *)&val, portTICK_RATE_MS * 100) == pdTRUE) {
+		if (xQueueReceive(xIRQueue, (void *)&val, portTICK_PERIOD_MS * 100) == pdTRUE) {
 			if (val >> 16 == 0xBEEF) {
 				data.init_level = ~val & 0x01;
 				data.counter = 0;

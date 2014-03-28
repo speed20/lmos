@@ -1,6 +1,6 @@
 #ifndef _I2C_BSP_H_
 #define _I2C_BSP_H_
-#include "stm32f4_discovery.h"
+#include "global_includes.h"
 
 typedef struct {
 	uint8_t bus_num;

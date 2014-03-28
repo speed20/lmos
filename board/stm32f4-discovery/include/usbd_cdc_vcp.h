@@ -24,8 +24,6 @@
 #define __USBD_CDC_VCP_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4_discovery.h"
-
 #include "usbd_cdc_core.h"
 #include "usbd_conf.h"
 #include <stdint.h>

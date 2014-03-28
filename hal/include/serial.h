@@ -1,4 +1,4 @@
-#include "stm32f4_discovery.h"
+#include "global_includes.h"
 
 #define SERIAL_USE_DMA
 void serial_init(uint32_t port, uint32_t baudrate);

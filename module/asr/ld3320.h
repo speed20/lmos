@@ -87,8 +87,8 @@ enum LD_MODE {
 	LD_MODE_MP3 = 0x40
 };
 
-extern xSemaphoreHandle xASRSemaphore;
-extern xSemaphoreHandle xMP3Semaphore;
+extern SemaphoreHandle_t xASRSemaphore;
+extern SemaphoreHandle_t xMP3Semaphore;
 extern volatile uint8_t nAsrStatus;
 extern volatile uint8_t nLD_Mode;
 volatile extern uint32_t mp3_cur, mp3_size;

@@ -14,12 +14,12 @@
 #define STACK_SIZE 1024
 
 extern USB_OTG_CORE_HANDLE  USB_OTG_dev;
-extern xSemaphoreHandle mpu6050Semaphore;
+extern SemaphoreHandle_t mpu6050Semaphore;
 static portTASK_FUNCTION_PROTO(vMPU6050TestTask, pvParameters);
 
 void vStartMPU6050Tasks(unsigned portBASE_TYPE uxPriority)
 {
-	xTaskCreate(vMPU6050TestTask, (signed char *)"imu", STACK_SIZE, NULL, uxPriority, (xTaskHandle *)NULL);
+	xTaskCreate(vMPU6050TestTask, (signed char *)"imu", STACK_SIZE, NULL, uxPriority, (TaskHandle_t *)NULL);
 }
 
 #pragma pack(1) 
@@ -31,7 +31,7 @@ struct mpu6050_report_t {
 #define SCALE 2000
 static portTASK_FUNCTION(vMPU6050TestTask, pvParameters)
 {
-	portTickType xSendRate, xLastSendTime;
+	TickType_t xSendRate, xLastSendTime;
 	xSendRate = 2;
 	int16_t ax, ay, az, rx, ry, rz, hx, hy, hz;
 	int32_t roll, yaw, pitch;
@@ -73,7 +73,7 @@ static portTASK_FUNCTION(vMPU6050TestTask, pvParameters)
 
 //			sprintf(buf, "%d,%d,%d\r\n", mpu.rawMag[0], mpu.rawMag[1], mpu.rawMag[2]);
 //			VCP_send_str(buf);
-			vParTestToggleLED(LED1);
+			vParTestToggleLED(LED3);
 			Bt_Send(buf, size);
 			serial_print("%s", buf);
 			buf[size-2] = '\0';

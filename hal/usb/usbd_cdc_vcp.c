@@ -25,7 +25,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc_vcp.h"
-#include "stm32f4_discovery.h"
 //Library config for this project!!!!!!!!!!!
 #include "stm32f4xx_conf.h"
 

@@ -15,8 +15,8 @@ asm_objs = $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard
 objs += $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.c)))))
 
 tmp_objs  = main.o \
+		stm32f429i_discovery.o \
 		isr.o \
-		stm32f4_discovery.o \
 		task_asr.o \
 		task_flash.o \
 		task_mpu6050.o \
@@ -27,15 +27,13 @@ objs += $(addprefix $(OUT_DIR)/,$(tmp_objs))
 
 CFLAGS += \
 		 $(header) \
-         -D GCC_ARMCM4F_LM3S102 \
-         -D USE_STDPERIPH_DRIVER \
          -D USE_DEFAULT_TIMEOUT_CALLBACK \
          -D USE_USB_OTG_FS \
-         -D STM32F4XX \
          -D USE_STDPERIPH_DRIVER \
-         -D MOD_MTHOMAS_STMLIB \
          -D ARM_MATH_CM4 \
-#         -D DEBUG
+		 -D STM32F429_439xx
+         #-D MOD_MTHOMAS_STMLIB \
+         #-D GCC_ARMCM4F_LM3S102 \
 
 ld_script	= stm32f40x.ld
 image		= $(OUT_DIR)/Demo.elf

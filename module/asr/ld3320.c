@@ -9,8 +9,8 @@
  * PA9: IRQ
  */
 
-xSemaphoreHandle xASRSemaphore = NULL;
-xSemaphoreHandle xMP3Semaphore = NULL;
+SemaphoreHandle_t xASRSemaphore = NULL;
+SemaphoreHandle_t xMP3Semaphore = NULL;
 volatile uint8_t nAsrStatus;
 volatile uint8_t nLD_Mode;
 volatile uint32_t mp3_pos, mp3_size;

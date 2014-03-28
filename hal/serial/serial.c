@@ -1,5 +1,4 @@
 #include "serial.h"
-#include "stm32f4_discovery.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
