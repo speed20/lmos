@@ -18,7 +18,6 @@
 #include "usbd_usr.h"
 #include "usbd_desc.h"
 
-#include "mpulib.h"
 #include <display/oled.h>
 #include "delay.h"
 //#include "bt.h"
@@ -98,7 +97,6 @@ static void USB_Test(void);
 static void Fail_Handler(void);
 static void TIM2_Config(void);
 static void TIM5_Config(void);
-static int mpu6050_config(void);
 
 /*-----------------------------------------------------------*/
 
@@ -564,49 +562,4 @@ static void TIM5_Config(void)
 
 	/* TIM5 enable counter */
 	TIM_Cmd(TIM5, ENABLE);
-}
-
-static int mpu6050_config()
-{
-	GPIO_InitTypeDef GPIO_InitStructure;
-	NVIC_InitTypeDef myNVIC_InitStructure;
-	EXTI_InitTypeDef EXTI_InitStructure;
-
-	vSemaphoreCreateBinary(mpu6050Semaphore);
-	/* GPIOA clock enable */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-
-	/*-------------------------- GPIO Configuration ----------------------------*/
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource1);
-
-	/* Configure Button EXTI line */
-	EXTI_InitStructure.EXTI_Line = EXTI_Line1;
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
-
-    /* Enable and set Button EXTI Interrupt to the lowest priority */
-    myNVIC_InitStructure.NVIC_IRQChannel = EXTI1_IRQn;
-    myNVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY;
-    myNVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
-    myNVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&myNVIC_InitStructure);
-
-	//mpu6050_initialize();
-	//mpu6050_dmpInitialize();
-	/*
-	mpu6050_setXGyroOffset(220);
-	mpu6050_setYGyroOffset(76);
-	mpu6050_setZGyroOffset(-85);
-	mpu6050_setZAccelOffset(1788);
-	*/
 }

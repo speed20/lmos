@@ -1,6 +1,6 @@
 #include "stm32f4xx_i2c.h"
 #include "mpu6050.h"
-#include "hmc5883l.h"
+#include "hmc588xx/hmc5883l.h"
 #include "i2c_bsp.h"
 #include "stdlib.h"
 

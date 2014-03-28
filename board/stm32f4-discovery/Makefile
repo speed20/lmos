@@ -1,20 +1,18 @@
 include config.mk
-
-lib_inc := $(patsubst %,-I %,$(shell find ${SOURCE_ROOT}/lib -type d -print))
-#$(info ${lib_inc})
+include $(ROOT_DIR)/kernel/build.mk
+include $(ROOT_DIR)/module/build.mk
+include $(ROOT_DIR)/hal/build.mk
+include $(ROOT_DIR)/lib/build.mk
 
 header	=	-I include \
-			-I ${SOURCE_ROOT}/hal/include \
-			-I ${SOURCE_ROOT}/module \
-			-I ${SOURCE_ROOT}/kernel/Source \
-			-I ${SOURCE_ROOT}/kernel/Source/include \
-			-I ${SOURCE_ROOT}/kernel/Source/portable/GCC/ARM_CM4F \
-			$(lib_inc)
-
-src_path= $(shell find . -type d -print)
+			-I ${ROOT_DIR}/lib \
+			-I ${ROOT_DIR}/lib/CMSIS/Include \
+			-I ${ROOT_DIR}/lib/CMSIS/Device/ST/STM32F4xx/Include
 
 boot_code_path = boot
-boot_objs = $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.S)))))
+VPATH += $(boot_code_path):app:interrupt:bsp:task
+asm_objs = $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.S)))))
+objs += $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.c)))))
 
 tmp_objs  = main.o \
 		isr.o \
@@ -25,14 +23,10 @@ tmp_objs  = main.o \
 		task_pulse.o \
 		task_ir.o
 
-objs = $(addprefix $(OUT_DIR)/,$(tmp_objs))
+objs += $(addprefix $(OUT_DIR)/,$(tmp_objs))
 
-VPATH = $(src_path)
-
-CFLAGS += $(patsubst %,-I %,$(src_path))
 CFLAGS += \
 		 $(header) \
-         -I data \
          -D GCC_ARMCM4F_LM3S102 \
          -D USE_STDPERIPH_DRIVER \
          -D USE_DEFAULT_TIMEOUT_CALLBACK \
@@ -41,7 +35,7 @@ CFLAGS += \
          -D USE_STDPERIPH_DRIVER \
          -D MOD_MTHOMAS_STMLIB \
          -D ARM_MATH_CM4 \
-         -D DEBUG
+#         -D DEBUG
 
 ld_script	= stm32f40x.ld
 image		= $(OUT_DIR)/Demo.elf
@@ -50,7 +44,7 @@ image		= $(OUT_DIR)/Demo.elf
 
 demo: $(image)
 
-$(image): $(objs) $(boot_objs) other
+$(image): $(objs) $(asm_objs)
 	@echo "LD $(image)"
 	@${LD} -T ${ld_script} \
            --entry main \
@@ -64,21 +58,19 @@ ifeq ($(filter $(OUT_DIR),$(wildcard *)), )
 endif
 
 test:
+	@echo $(VPATH)
 	@echo $(objs)
 
 $(objs): $(OUT_DIR)/%.o : %.c
-	@echo "CC $@"
+	@echo "CC $(notdir $@)"
 	@$(CC) $(CFLAGS) -o $@ -c $<
 
-$(boot_objs): $(OUT_DIR)/%.o : %.S
-	@echo "AS $@"
+$(asm_objs): $(OUT_DIR)/%.o : %.S
+	@echo "AS $(notdir $@)"
 	@$(CC) $(AFLAGS) -o $@ -c $<
 
-other:
-	make -C ${SOURCE_ROOT}
-
 clean:
-	-rm out/*
+	-rm out -rf
 
 show:
 	@echo $(objs)

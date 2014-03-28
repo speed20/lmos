@@ -49,9 +49,23 @@
 * @}
 */ 
 
+#ifdef USE_HOST_MODE
+void USB_OTG_BSP_DriveVBUS(USB_OTG_CORE_HANDLE *pdev,uint8_t state)
+{
+}
 
+/**
+  * @brief  USB_OTG_BSP_ConfigVBUS
+  *         Configures the IO for the Vbus and OverCurrent
+  * @param  Speed : Full, Low 
+  * @retval None
+  */
 
+void  USB_OTG_BSP_ConfigVBUS(USB_OTG_CORE_HANDLE *pdev)
+{
 
+}
+#endif
 
 /** @defgroup USB_BSP_Private_Macros
 * @{

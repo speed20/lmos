@@ -5,20 +5,20 @@
 
 #include "mpu6050.h"
 #include "mpu6050_dmp.h"
-#include "hmc5883l.h"
+#include "hmc588xx/hmc5883l.h"
 #include "math.h"
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
     #define DEBUG_PRINT serial_print
     #define DEBUG_PRINTF serial_print
     #define DEBUG_PRINTLN serial_print
     #define DEBUG_PRINTLNF serial_print
 #else
-    #define DEBUG_PRINT(x)
-    #define DEBUG_PRINTF(x, y)
-    #define DEBUG_PRINTLN(x)
-    #define DEBUG_PRINTLNF(x, y)
+    #define DEBUG_PRINT
+    #define DEBUG_PRINTF
+    #define DEBUG_PRINTLN
+    #define DEBUG_PRINTLNF
 #endif
 
 #define MPU6050_DMP_CODE_SIZE       1962    // dmpMemory[]

@@ -23,7 +23,7 @@
 #include <string.h>
 #include <math.h>
 #include "inv_mpu.h"
-#include "hmc5883l.h"
+#include "hmc588xx/hmc5883l.h"
 
 /* The following functions must be defined for this platform:
  * i2c_write(unsigned char slave_addr, unsigned char reg_addr,
