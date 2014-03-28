@@ -10,7 +10,7 @@ header	=	-I include \
 			-I ${ROOT_DIR}/lib/CMSIS/Device/ST/STM32F4xx/Include
 
 boot_code_path = boot
-VPATH += $(boot_code_path):app:interrupt:bsp:task
+VPATH += $(boot_code_path):app:bsp:task
 asm_objs = $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.S)))))
 objs += $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.c)))))
 

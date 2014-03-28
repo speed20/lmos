@@ -127,9 +127,8 @@ void TIM5_IRQHandler(void)
 	}
 }
 
-//void EXTI0_IRQHandler(void)
-
-void EXTI15_10_IRQHandler(void)
+void EXTI0_IRQHandler(void)
+//void EXTI15_10_IRQHandler(void)
 {
 	serial_print("button pressed\r\n");
 	long lHigherPriorityTaskWoken = pdFALSE;
