@@ -68,6 +68,9 @@ CONFIG_Class_hid=y
 CONFIG_Class_dfu=n
 
 CONFIG_STM32_USB_OTG_Driver=y
+CONFIG_usb_dcd=y
+CONFIG_usb_hdc=n
+CONFIG_usb_otg=y
 
 define all_c_files
 $(notdir $(wildcard $1/*.c))
@@ -104,7 +107,20 @@ CFLAGS += $(foreach i,$(opt1),$(if $(filter y,$(CONFIG_Class_$(i))),$(call all_h
 endif
 
 ifeq ($(CONFIG_STM32_USB_OTG_Driver), y)
-objs += $(addprefix $(OUT_DIR)/,$(patsubst %.c,%.o,$(call all_c_files,bsp/STM32_USB_OTG_Driver/src)))
+objs += $(OUT_DIR)/usb_core.o
+ifeq ($(CONFIG_usb_hcd), y)
+objs += $(addprefix $(OUT_DIR)/,$(patsubst %.c,%.o,$(notdir $(wildcard bsp/STM32_USB_OTG_Driver/src/usb_hcd*.c))))
+endif
+
+ifeq ($(CONFIG_usb_dcd), y)
+objs += $(addprefix $(OUT_DIR)/,$(patsubst %.c,%.o,$(notdir $(wildcard bsp/STM32_USB_OTG_Driver/src/usb_dcd*.c))))
+endif
+
+ifeq ($(CONFIG_usb_otg), y)
+objs += $(addprefix $(OUT_DIR)/,$(patsubst %.c,%.o,$(notdir $(wildcard bsp/STM32_USB_OTG_Driver/src/usb_otg*.c))))
+endif
+
+#objs += $(addprefix $(OUT_DIR)/,$(patsubst %.c,%.o,$(call all_c_files,bsp/STM32_USB_OTG_Driver/src)))
 CFLAGS += $(call all_header_dir,"bsp/STM32_USB_OTG_Driver")
 VPATH += bsp/STM32_USB_OTG_Driver/src
 endif
