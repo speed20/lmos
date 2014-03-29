@@ -34,14 +34,15 @@ enum {
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
 	uint16_t i, last_value;
-	uint16_t x;
+	uint16_t v;
 	uint8_t level, last_level, start_condation;
 	uint32_t counter, t0, diff, freq, period, tolerance, index;
 	uint8_t buf[64];
-	uint32_t sample_freq = 100000;
+	uint32_t sample_freq = 10000;
 	uint8_t bit[1024];
 	uint16_t hist[16];
-	uint32_t sum;
+  	Point pp[240];
+	uint32_t sum, sample_point;
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
 	xSemaphoreTake(xPulseSemaphore, 0);
@@ -51,14 +52,31 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	ADC_SoftwareStartConv(ADC1);
 	serial_println("start pulse task");
 
+	for (i=0; i<240; i++) {
+		pp[i].X = i;
+//		pp[i].Y = 0;
+	}
+//	LCD_PolyLine(pp, 240);
+
 	counter = 0;
 	t0 = 0;
 	start_condation = 8;
 	index = 0;
 	period = 0;
+	sample_point = 1;
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
-		x = adc_value[0];
+
+		v = adc_value[0];
+		for (i=sample_point - 1; i>0; i--) {
+			pp[i].Y = pp[i-1].Y;
+		}
+		pp[0].Y = 100 * ((float)v / 4096.0f) + 160;
+		LCD_Clear(LCD_COLOR_WHITE);
+		LCD_PolyLine(pp, sample_point);
+
+		if (sample_point < 240)
+			sample_point++;
 
 #if 0
 		if (adc_value[0] >= 300) {
@@ -113,8 +131,11 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 				
 		last_level = level;
 		counter++;
+
+
+
 #endif
-		sprintf((char*)buf, "%d", x);
+//		sprintf((char*)buf, "%d", x);
 //		LCD_DisplayStringLine(LCD_LINE_6, (uint8_t*)buf);
 
 //		sprintf(buf, "%d\n\r", x);

@@ -7,10 +7,12 @@ include $(ROOT_DIR)/lib/build.mk
 header	=	-I include \
 			-I ${ROOT_DIR}/lib \
 			-I ${ROOT_DIR}/lib/CMSIS/Include \
-			-I ${ROOT_DIR}/lib/CMSIS/Device/ST/STM32F4xx/Include
+			-I ${ROOT_DIR}/lib/CMSIS/Device/ST/STM32F4xx/Include \
+			-I ~/Work/arm-none-eabi/include/
+
 
 boot_code_path = boot
-VPATH += $(boot_code_path):app:bsp:task
+VPATH += $(boot_code_path):app:bsp:task:../../lib/CMSIS/DSP_Lib/Source/FastMathFunctions
 asm_objs = $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.S)))))
 objs += $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.c)))))
 
@@ -24,6 +26,7 @@ tmp_objs  = main.o \
 		task_flash.o \
 		task_mpu6050.o \
 		task_pulse.o \
+		arm_sin_f32.o \
 		task_ir.o
 
 objs += $(addprefix $(OUT_DIR)/,$(tmp_objs))
@@ -35,9 +38,12 @@ CFLAGS += \
          -D USE_STDPERIPH_DRIVER \
          -D ARM_MATH_CM4 \
 		 -D STM32F429_439xx \
-		 -D USE_STM32F429I_DISCO
-         #-D MOD_MTHOMAS_STMLIB \
-         #-D GCC_ARMCM4F_LM3S102 \
+		 -D USE_STM32F429I_DISCO \
+		 -D ARM_MATH_CM4 \
+		 -D ARM_MATH_MATRIX_CHECK \
+		 -D ARM_MATH_ROUNDING \
+		 -D __FPU_PRESENT \
+		 -D __FPU_USED
 
 ld_script	= stm32f40x.ld
 image		= $(OUT_DIR)/Demo.elf
@@ -46,6 +52,7 @@ image		= $(OUT_DIR)/Demo.elf
 
 demo: $(image)
 
+#'../../lib/CMSIS/Lib/GCC/libarm_cortexM4lf_math.a'
 $(image): $(objs) $(asm_objs)
 	@echo "LD $(image)"
 	@${LD} -T ${ld_script} \

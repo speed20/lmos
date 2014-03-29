@@ -20,6 +20,7 @@
 #include <display/oled.h>
 #include "delay.h"
 #include "display.h"
+#include "arm_math.h"
 //#include "bt.h"
 
 /* Priorities for the demo application tasks. */
