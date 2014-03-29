@@ -3,7 +3,6 @@
 #include "task.h"
 #include "semphr.h"
 #include "queue.h"
-#include "usb_core.h"
 #include "delay.h"
 #include "serial.h"
 
@@ -15,8 +14,8 @@ uint8_t update_flag = 0;
 uint32_t start = 1;
 
 extern SemaphoreHandle_t xTestSemaphore;
-extern SemaphoreHandle_t mpu6050Semaphore;
-extern USB_OTG_CORE_HANDLE USB_OTG_dev;
+//extern SemaphoreHandle_t mpu6050Semaphore;
+//extern USB_OTG_CORE_HANDLE USB_OTG_dev;
 extern QueueHandle_t xIRQueue;
 
 void NMI_Handler(void)
@@ -162,6 +161,7 @@ void EXTI1_IRQHandler(void)
 }
 */
 
+#if 0
 /**
   * @brief  This function handles EXTI15_10_IRQ Handler.
   * @param  None
@@ -190,6 +190,7 @@ void OTG_FS_IRQHandler(void)
 {   
   USBD_OTG_ISR_Handler (&USB_OTG_dev);
 }
+#endif
 
 void Fail_Handler(void)
 {

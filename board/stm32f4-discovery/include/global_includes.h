@@ -41,16 +41,6 @@
 #include "stm32f429i_discovery_sdram.h"
 #include "stm32f429i_discovery_l3gd20.h"
 
-/*
-#include "usbh_msc_core.h"
-#include "usbh_msc_scsi.h"
-#include "usbh_msc_bot.h"
-#include "usbh_usr.h"
-#include "ff.h"
-
-#include "GUI.h"
-#include "DIALOG.h"
-*/
 typedef enum {
 	true = 1,
 	false = 0

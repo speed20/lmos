@@ -47,14 +47,10 @@ static void prvButtonTestTask( void *pvParameters );
 static void prvOptionallyCreateComprehensveTestApplication( void );
 
 /* delay */
-static uint32_t USBConfig(void);
-volatile unsigned long ulFPUInterruptNesting = 0UL, ulMaxFPUInterruptNesting = 0UL;
 SemaphoreHandle_t xTestSemaphore = NULL;
 SemaphoreHandle_t mpu6050Semaphore = NULL;
 //SemaphoreHandle_t xIRSemaphore = NULL;
 volatile unsigned long ulButtonPressCounts = 0UL;
-USB_OTG_CORE_HANDLE  USB_OTG_dev;
-uint8_t DemoEnterCondition = 0x00;
 QueueHandle_t xIRQueue = NULL;
 
 int main(void)
@@ -184,15 +180,3 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, signed char *pcTaskName
 		vParTestToggleLED(1);
 	};
 }
-
-static uint32_t USBConfig(void)
-{
-  USBD_Init(&USB_OTG_dev,
-            USB_OTG_HS_CORE_ID,
-            &USR_desc,
-            &USBD_HID_cb,
-//			&USBD_CDC_cb,
-            &USR_cb);
-  
-  return 0;
-} 

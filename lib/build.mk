@@ -11,8 +11,8 @@ $(addprefix -I./,$(shell find $(1) -name inc))
 endef
 
 CONFIG_LIB_CMSIS=n
-CONFIG_LIB_eMPL=y
-CONFIG_LIB_mpulib=y
+CONFIG_LIB_eMPL=n
+CONFIG_LIB_mpulib=n
 
 ifeq ($(CONFIG_LIB_CMSIS), y)
 VPATH += $(lib_local_path)/CMSIS

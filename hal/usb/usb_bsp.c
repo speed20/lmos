@@ -426,6 +426,17 @@ static void BSP_SetTime(uint8_t unit)
 /**
 * @}
 */ 
+static uint32_t USBConfig(void)
+{
+  USBD_Init(&USB_OTG_dev,
+            USB_OTG_HS_CORE_ID,
+            &USR_desc,
+            &USBD_HID_cb,
+//          &USBD_CDC_cb,
+            &USR_cb);
+
+  return 0;
+}
 
 /**
 * @}

@@ -9,14 +9,14 @@ define all_header_dir
 $(addprefix -I./,$(shell find $(1) -name inc))
 endef
 
-CONFIG_asr=y
+CONFIG_asr=n
 CONFIG_timer=y
-CONFIG_wireless=y
-CONFIG_hmc588xx=y
+CONFIG_wireless=n
+CONFIG_hmc588xx=n
 CONFIG_misc=n
 CONFIG_led=y
-CONFIG_display=y
-CONFIG_invense=y
+CONFIG_display=n
+CONFIG_invense=n
 
 ifeq ($(CONFIG_asr), y)
 VPATH += $(module_local_path)/asr
