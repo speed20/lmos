@@ -7,6 +7,7 @@
 #include "usb_core.h"
 
 #include "stm32f4xx_adc.h"
+#include "stm32f429i_discovery_lcd.h"
 
 #define ADC_DMA_BUF_LEN 1
 
@@ -33,7 +34,7 @@ enum {
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
 	uint16_t i, last_value;
-	volatile uint16_t x;
+	uint16_t x;
 	uint8_t level, last_level, start_condation;
 	uint32_t counter, t0, diff, freq, period, tolerance, index;
 	uint8_t buf[64];
@@ -57,13 +58,14 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	period = 0;
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
-#if 1
+		x = adc_value[0];
+
+#if 0
 		if (adc_value[0] >= 300) {
 			level = HIGH;
 		} else {
 			level = LOW;
 		}
-
 		if (RAISING(last_level, level)) {
 			diff = counter - t0 + 0xffffffff;
 			sprintf(buf, "^: %d\n\r", diff);
@@ -112,6 +114,8 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 		last_level = level;
 		counter++;
 #endif
+		sprintf((char*)buf, "%d", x);
+//		LCD_DisplayStringLine(LCD_LINE_6, (uint8_t*)buf);
 
 //		sprintf(buf, "%d\n\r", x);
 //		VCP_send_data(&x, 2);
@@ -326,4 +330,41 @@ void set_timer(TIM_TypeDef *TIMx, uint32_t freq)
 
 	/* TIM2 enable counter */
 	TIM_Cmd(TIMx, ENABLE);
+}
+
+//#define ADC_DMA_BUF_LEN 1024
+void DMA2_Stream0_IRQHandler(void)
+{
+	long lHigherPriorityTaskWoken = pdFALSE;
+	uint16_t i, size;
+	int x;
+	static int count = 0;
+	uint8_t buf[16];
+
+	if (DMA_GetITStatus(DMA2_Stream0, DMA_IT_TCIF0)) {
+		DMA_ClearFlag(DMA2_Stream0, DMA_FLAG_TCIF0);
+		/*
+		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TCIF0);  
+		if (DMA_GetCurrentMemoryTarget(DMA2_Stream0) == 0) {
+			x = 0;
+		} else {
+			x = 1;
+		}
+		*/
+
+		/*
+		for (i=0; i<ADC_DMA_BUF_LEN; i++)  {
+			size = sprintf(buf, "%04d\n", adc_value[x][i]);
+			VCP_send_str(buf, size);
+		}
+		*/
+
+		if (count % 10000)
+			STM_EVAL_LEDToggle(LED3);
+		count++;
+
+		xSemaphoreGiveFromISR(xPulseSemaphore, &lHigherPriorityTaskWoken);
+		portEND_SWITCHING_ISR(lHigherPriorityTaskWoken);
+//		VCP_send_data(&adc_value, 2);
+	}
 }

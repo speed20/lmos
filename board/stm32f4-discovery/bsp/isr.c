@@ -16,13 +16,8 @@ uint32_t start = 1;
 
 extern SemaphoreHandle_t xTestSemaphore;
 extern SemaphoreHandle_t mpu6050Semaphore;
-extern SemaphoreHandle_t xPulseSemaphore;
 extern USB_OTG_CORE_HANDLE USB_OTG_dev;
 extern QueueHandle_t xIRQueue;
-extern volatile uint16_t adc_value;
-#ifdef SERIAL_USE_DMA
-extern volatile uint8_t flag_uart_send;
-#endif
 
 void NMI_Handler(void)
 {
@@ -205,51 +200,3 @@ void Fail_Handler(void)
   }
 }
 
-//#define ADC_DMA_BUF_LEN 1024
-void DMA2_Stream0_IRQHandler(void)
-{
-	long lHigherPriorityTaskWoken = pdFALSE;
-	uint16_t i, size;
-	int x;
-	static int count = 0;
-	uint8_t buf[16];
-
-	if (DMA_GetITStatus(DMA2_Stream0, DMA_IT_TCIF0)) {
-		DMA_ClearFlag(DMA2_Stream0, DMA_FLAG_TCIF0);
-		/*
-		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TCIF0);  
-		if (DMA_GetCurrentMemoryTarget(DMA2_Stream0) == 0) {
-			x = 0;
-		} else {
-			x = 1;
-		}
-		*/
-
-		/*
-		for (i=0; i<ADC_DMA_BUF_LEN; i++)  {
-			size = sprintf(buf, "%04d\n", adc_value[x][i]);
-			VCP_send_str(buf, size);
-		}
-		*/
-
-		if (count % 10000)
-			STM_EVAL_LEDToggle(LED3);
-		count++;
-
-		xSemaphoreGiveFromISR(xPulseSemaphore, &lHigherPriorityTaskWoken);
-		portEND_SWITCHING_ISR(lHigherPriorityTaskWoken);
-//		VCP_send_data(&adc_value, 2);
-	}
-}
-
-#ifdef SERIAL_USE_DMA
-void DMA1_Stream3_IRQHandler(void)  
-{  
-	if (DMA_GetITStatus(DMA1_Stream3, DMA_IT_TCIF3)) {
-		/* Clear DMA Stream Transfer Complete interrupt pending bit */
-		DMA_ClearITPendingBit(DMA1_Stream3, DMA_IT_TCIF3);  
-		DMA_Cmd(DMA1_Stream3, DISABLE);
-		flag_uart_send = 0;  
-	}
-}
-#endif

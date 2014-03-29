@@ -17,6 +17,9 @@ objs += $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(
 tmp_objs  = main.o \
 		stm32f429i_discovery.o \
 		isr.o \
+		stm32f429i_discovery_lcd.o \
+		stm32f429i_discovery_sdram.o \
+		display.o \
 		task_asr.o \
 		task_flash.o \
 		task_mpu6050.o \
@@ -31,7 +34,8 @@ CFLAGS += \
          -D USE_USB_OTG_FS \
          -D USE_STDPERIPH_DRIVER \
          -D ARM_MATH_CM4 \
-		 -D STM32F429_439xx
+		 -D STM32F429_439xx \
+		 -D USE_STM32F429I_DISCO
          #-D MOD_MTHOMAS_STMLIB \
          #-D GCC_ARMCM4F_LM3S102 \
 

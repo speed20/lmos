@@ -28,7 +28,9 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f429i_discovery_lcd.h"
-#include "../Common/fonts.c"
+#include "stm32f4xx_ltdc.h"
+#include "stm32f4xx_dma2d.h"
+#include "fonts.c"
 
 
 /** @addtogroup Utilities

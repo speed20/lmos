@@ -19,6 +19,7 @@
 
 #include <display/oled.h>
 #include "delay.h"
+#include "display.h"
 //#include "bt.h"
 
 /* Priorities for the demo application tasks. */
@@ -58,6 +59,7 @@ QueueHandle_t xIRQueue = NULL;
 int main(void)
 {
 	prvSetupHardware();
+	Display_Init();
 
 //	TIM2_Config();
 //	TIM5_Config();
@@ -66,8 +68,8 @@ int main(void)
 
 //	xIRQueue = xQueueCreate(10, sizeof(uint32_t));
 
-	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
-	//vStartPulseTask(mainFLOP_TASK_PRIORITY);
+//	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
+	vStartPulseTask(mainFLOP_TASK_PRIORITY);
 	//vStartMPU6050Tasks(mainFLOP_TASK_PRIORITY);
 	//vStartIRTestTask(mainIR_TASK_PRIORITY);
 	//vStartASRTestTask(mainIR_TASK_PRIORITY);
@@ -98,16 +100,14 @@ static void prvButtonTestTask( void *pvParameters )
 
 static void prvSetupHardware( void )
 {
-	/* Setup STM32 system (clock, PLL and Flash configuration) */
-	SystemInit();
-	serial_init(USART_PORT, BAUDRATE);
-//	i2c_init(0, 400000);
-	USBConfig();
-	/* Ensure all priority bits are assigned as preemption priority bits. */
-	NVIC_PriorityGroupConfig( NVIC_PriorityGroup_4 );
 	/* Setup the LED outputs. */
 	vParTestInitialise();
-	STM_EVAL_PBInit( BUTTON_USER, BUTTON_MODE_EXTI );
+	serial_init(PRINT_PORT, BAUDRATE);
+//	i2c_init(0, 400000);
+//	USBConfig();
+	/* Ensure all priority bits are assigned as preemption priority bits. */
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+	STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI);
 }
 /*-----------------------------------------------------------*/
 
@@ -187,10 +187,10 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, signed char *pcTaskName
 static uint32_t USBConfig(void)
 {
   USBD_Init(&USB_OTG_dev,
-            USB_OTG_FS_CORE_ID,
+            USB_OTG_HS_CORE_ID,
             &USR_desc,
-   //         &USBD_HID_cb,
-			&USBD_CDC_cb,
+            &USBD_HID_cb,
+//			&USBD_CDC_cb,
             &USR_cb);
   
   return 0;
