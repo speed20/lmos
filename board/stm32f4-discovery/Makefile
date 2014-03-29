@@ -12,7 +12,7 @@ header	=	-I include \
 
 
 boot_code_path = boot
-VPATH += $(boot_code_path):app:bsp:task:../../lib/CMSIS/DSP_Lib/Source/FastMathFunctions
+VPATH += $(boot_code_path):app:lib/bsp:task:../../lib/CMSIS/DSP_Lib/Source/FastMathFunctions
 asm_objs = $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.S)))))
 objs += $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(boot_code_path)/*.c)))))
 
