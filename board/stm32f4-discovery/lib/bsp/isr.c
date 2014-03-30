@@ -13,10 +13,10 @@ uint8_t button_flag = 0;
 uint8_t update_flag = 0;
 uint32_t start = 1;
 
-extern SemaphoreHandle_t xTestSemaphore;
+//extern SemaphoreHandle_t xTestSemaphore;
 //extern SemaphoreHandle_t mpu6050Semaphore;
 //extern USB_OTG_CORE_HANDLE USB_OTG_dev;
-extern QueueHandle_t xIRQueue;
+//extern QueueHandle_t xIRQueue;
 
 void NMI_Handler(void)
 {
@@ -32,21 +32,21 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   while (1) {
-//	vParTestToggleLED(LED4);
+	vParTestToggleLED(LED4);
   }
 }
 
 void BusFault_Handler(void)
 {
   while (1) {
-//	vParTestToggleLED(LED3);	
+	vParTestToggleLED(LED3);	
   }
 }
 
 void UsageFault_Handler(void)
 {
   while (1) {
-//	vParTestToggleLED(LED3);	
+	vParTestToggleLED(LED3);	
   }
 }
 
@@ -89,6 +89,7 @@ void TIM3_IRQHandler( void )
 }
 /*-----------------------------------------------------------*/
 
+#if 0
 void TIM5_IRQHandler(void)
 {
 	int32_t tick = 0;
@@ -144,6 +145,7 @@ void EXTI0_IRQHandler(void)
 	return directly to the unblocked, higher priority, task. */
 	portEND_SWITCHING_ISR( lHigherPriorityTaskWoken );
 }
+#endif
 
 /*
 void EXTI1_IRQHandler(void)
@@ -197,7 +199,7 @@ void Fail_Handler(void)
   while(1)
   {
     /* Toggle Red LED */
-    STM_EVAL_LEDToggle(LED3);
+    STM_EVAL_LEDToggle(LED4);
   }
 }
 

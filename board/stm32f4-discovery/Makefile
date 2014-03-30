@@ -8,7 +8,8 @@ header	=	-I include \
 			-I ${ROOT_DIR}/lib \
 			-I ${ROOT_DIR}/lib/CMSIS/Include \
 			-I ${ROOT_DIR}/lib/CMSIS/Device/ST/STM32F4xx/Include \
-			-I ~/Work/arm-none-eabi/include/
+			-I lib/STemWinLibrary522/inc/
+#			-I ~/Work/arm-none-eabi/include/
 
 
 boot_code_path = boot
@@ -18,13 +19,16 @@ objs += $(addprefix $(OUT_DIR)/,$(addsuffix .o,$(basename $(notdir $(wildcard $(
 
 tmp_objs  = main.o \
 		stm32f429i_discovery.o \
-		isr.o \
-		stm32f429i_discovery_lcd.o \
 		stm32f429i_discovery_sdram.o \
-		display.o \
-		task_pulse.o
+		stm32f429i_discovery_lcd.o \
+		isr.o \
+		task_pulse.o \
+		task_flash.o \
+		GUIConf.o \
+		LCDConf.o \
+		GUI_X.o
+
 #		task_asr.o \
-#		task_flash.o \
 #		task_mpu6050.o \
 		arm_sin_f32.o \
 		task_ir.o
@@ -58,7 +62,7 @@ $(image): $(objs) $(asm_objs)
 	@${LD} -T ${ld_script} \
            --entry main \
            ${LDFLAGS} -o $@ $^  \
-           '${LIBC}' '${LIBM}' '${LIBGCC}'
+           '${LIBC}' '${LIBM}' '${LIBGCC}' 'lib/STemWinLibrary522/Lib/STemWin522_CM4_OS_GCC.a'
 	${OBJCOPY} -O binary $@ ${@:.elf=.bin}
 
 $(OUT_DIR):

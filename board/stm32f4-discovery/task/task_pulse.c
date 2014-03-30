@@ -4,10 +4,10 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-#include "usb_core.h"
 
 #include "stm32f4xx_adc.h"
 #include "stm32f429i_discovery_lcd.h"
+#include "GUI.h"
 
 #define ADC_DMA_BUF_LEN 1
 
@@ -20,7 +20,7 @@ void set_pcm_out_freq(uint32_t freq, uint32_t duty);
 
 void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
 {
-	xTaskCreate(vPulseTask, (signed char *)"Pulse", 4096, NULL, uxPriority, (TaskHandle_t *)NULL);
+	xTaskCreate(vPulseTask, (signed char *)"Pulse", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
 }
 
 enum {
@@ -33,15 +33,33 @@ enum {
 
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
+	LCD_Init();
+	LTDC_Cmd(ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+	GUI_Init();
+	GUI_SetColor(GUI_RED);
+	GUI_DispStringAt("Hello world!", 8, 8);
+//	serial_println("hardware setup ok");
+
+	for (;;) {
+//		Delay(100000);
+		serial_println("*");
+		STM_EVAL_LEDToggle(LED3);
+	}
+}
+
+#if 0
+static portTASK_FUNCTION(vPulseTask, pvParameters)
+{
 	uint16_t i, last_value;
 	uint16_t v;
 	uint8_t level, last_level, start_condation;
 	uint32_t counter, t0, diff, freq, period, tolerance, index;
 	uint8_t buf[64];
 	uint32_t sample_freq = 10000;
-	uint8_t bit[1024];
+//	uint8_t bit[1024];
 	uint16_t hist[16];
-  	Point pp[240];
+ 	Point pp[240];
 	uint32_t sum, sample_point;
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
@@ -72,11 +90,15 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 			pp[i].Y = pp[i-1].Y;
 		}
 		pp[0].Y = 100 * ((float)v / 4096.0f) + 160;
-		LCD_Clear(LCD_COLOR_WHITE);
-		LCD_PolyLine(pp, sample_point);
+//		LCD_Clear(LCD_COLOR_WHITE);
+//		LCD_PolyLine(pp, sample_point);
 
 		if (sample_point < 240)
 			sample_point++;
+
+		serial_println("%d", v);
+
+			STM_EVAL_LEDToggle(LED3);
 
 #if 0
 		if (adc_value[0] >= 300) {
@@ -143,6 +165,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 //		VCP_send_str(buf);
 	}
 }
+#endif
 
 /**
   * @brief  ADC1 channel6 with DMA configuration

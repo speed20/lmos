@@ -289,6 +289,7 @@ void LCD_Init(void)
   {
   }
   
+#if 0
   /* Timing configuration */  
   /* Configure horizontal synchronization width */     
   LTDC_InitStruct.LTDC_HorizontalSync = 9;
@@ -308,6 +309,7 @@ void LCD_Init(void)
   LTDC_InitStruct.LTDC_TotalHeigh = 327;
   
   LTDC_Init(&LTDC_InitStruct);
+#endif
 }  
 
 /**
