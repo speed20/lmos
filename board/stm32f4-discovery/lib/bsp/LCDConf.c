@@ -95,7 +95,7 @@ Purpose     : Display controller configuration (single layer)
 #define VFP  3
 
 /* Number of multiple buffers to be used */
-#define NUM_BUFFERS  1
+#define NUM_BUFFERS  2
 
 /* Number of virtual screens to be used */
 #define NUM_VSCREENS 1
@@ -157,7 +157,6 @@ DEFINEDMA2D_COLORCONVERSION(M565,   LTDC_Pixelformat_RGB565)
 DEFINEDMA2D_COLORCONVERSION(M1555I, LTDC_Pixelformat_ARGB1555)
 DEFINEDMA2D_COLORCONVERSION(M4444I, LTDC_Pixelformat_ARGB4444)
 
-#define STEM_DEBUG	serial_println("%s %d",__func__, __LINE__);
 /* Private functions ---------------------------------------------------------*/
 
 /**
@@ -167,7 +166,6 @@ DEFINEDMA2D_COLORCONVERSION(M4444I, LTDC_Pixelformat_ARGB4444)
   */
 static U32 GetPixelformat(int LayerIndex) 
 {
-STEM_DEBUG
   const LCD_API_COLOR_CONV * pColorConvAPI;
   
   if (LayerIndex >= GUI_COUNTOF(apColorConvAPI)) 
@@ -226,7 +224,6 @@ STEM_DEBUG
   */
 static uint32_t GetBytesPerLine(uint32_t LayerIndex, uint32_t xSize) 
 {
-STEM_DEBUG
   uint32_t BitsPerPixel, BytesPerLine;
 
   BitsPerPixel  = LCD_GetBitsPerPixelEx(LayerIndex);
@@ -242,7 +239,6 @@ STEM_DEBUG
   */
 static void DMA_LoadLUT(LCD_COLOR * pColor, uint32_t NumItems) 
 {
-STEM_DEBUG
   DMA2D->FGCMAR  = (uint32_t)pColor; 
   
   /*  Foreground PFC Control Register */
@@ -268,7 +264,6 @@ STEM_DEBUG
   */
 static void InvertAlpha_SwapRB(LCD_COLOR * pColorSrc, LCD_COLOR * pColorDst, uint32_t NumItems) 
 {
-STEM_DEBUG
   uint32_t Color;
   do 
   {
@@ -290,7 +285,6 @@ STEM_DEBUG
   */
 static void InvertAlpha(LCD_COLOR * pColorSrc, LCD_COLOR * pColorDst, uint32_t NumItems) 
 {
-STEM_DEBUG
   uint32_t Color;
 
   do 
@@ -310,7 +304,6 @@ STEM_DEBUG
   */
 static void DMA_AlphaBlendingBulk(LCD_COLOR * pColorFG, LCD_COLOR * pColorBG, LCD_COLOR * pColorDst, uint32_t NumItems) 
 {
-STEM_DEBUG
   /* Set up mode */
   DMA2D->CR      = 0x00020000UL | (1 << 9);         /* Control Register (Memory to memory with blending of FG and BG and TCIE) */
   
@@ -355,7 +348,6 @@ STEM_DEBUG
   */
 static LCD_COLOR DMA_MixColors(LCD_COLOR Color, LCD_COLOR BkColor, U8 Intens) 
 {
-STEM_DEBUG
   uint32_t ColorFG, ColorBG, ColorDst;
 
   if ((BkColor & 0xFF000000) == 0xFF000000)
@@ -407,7 +399,6 @@ STEM_DEBUG
   */
 static void DMA_ConvertColor(void * pSrc, void * pDst,  uint32_t PixelFormatSrc, uint32_t PixelFormatDst, uint32_t NumItems)
 {
-STEM_DEBUG
   /* Set up mode */
   
   DMA2D->CR      = 0x00010000UL | (1 << 9);         /* Control Register (Memory to memory with pixel format conversion and TCIE) */
@@ -447,7 +438,6 @@ STEM_DEBUG
   */
 static LCD_PIXELINDEX * _LCD_GetpPalConvTable(const LCD_LOGPALETTE GUI_UNI_PTR * pLogPal, const GUI_BITMAP GUI_UNI_PTR * pBitmap, int LayerIndex)
 {
-STEM_DEBUG
   void (* pFunc)(void);
   int DoDefault = 0;
   
@@ -509,7 +499,6 @@ STEM_DEBUG
   */
 static void DMA_MixColorsBulk(LCD_COLOR * pColorFG, LCD_COLOR * pColorBG, LCD_COLOR * pColorDst, U8 Intens, uint32_t NumItems)
 {
-STEM_DEBUG
   /* Set up mode */
   DMA2D->CR      = 0x00020000UL | (1 << 9);         /* Control Register (Memory to memory with blending of FG and BG and TCIE) */
   
@@ -548,7 +537,6 @@ STEM_DEBUG
   */
 static void DMA_AlphaBlending(LCD_COLOR * pColorFG, LCD_COLOR * pColorBG, LCD_COLOR * pColorDst, U32 NumItems)
 {
-STEM_DEBUG
   /* Invert alpha values */
   InvertAlpha(pColorFG, aBuffer_FG, NumItems);
   InvertAlpha(pColorBG, aBuffer_BG, NumItems);
@@ -575,7 +563,6 @@ STEM_DEBUG
   */
 static void DMA_Index2ColorBulk(void * pIndex, LCD_COLOR * pColor, uint32_t NumItems, U8 SizeOfIndex, uint32_t PixelFormat)
 {
-STEM_DEBUG
   /* Use DMA2D for the conversion */
   DMA_ConvertColor(pIndex, aBufferDMA2D, PixelFormat, LTDC_Pixelformat_RGB565, NumItems);
   
@@ -597,7 +584,6 @@ STEM_DEBUG
   */
 static void DMA_Color2IndexBulk(LCD_COLOR * pColor, void * pIndex, uint32_t NumItems, U8 SizeOfIndex, uint32_t PixelFormat) 
 {
-STEM_DEBUG
   /* Convert colors from ABGR to ARGB and invert alpha values */
   InvertAlpha_SwapRB(pColor, aBufferDMA2D, NumItems);
   
@@ -619,7 +605,6 @@ STEM_DEBUG
   * @retval None
   */
 static void LCD_MixColorsBulk(U32 * pFG, U32 * pBG, U32 * pDst, unsigned OffFG, unsigned OffBG, unsigned OffDest, unsigned xSize, unsigned ySize, U8 Intens) {
-STEM_DEBUG
   int y;
 
   GUI_USE_PARA(OffFG);
@@ -647,7 +632,6 @@ STEM_DEBUG
   */
 static void LTDC_LayerEnableColorKeying(LTDC_Layer_TypeDef * LTDC_Layerx, int NewState)
 {
-STEM_DEBUG
   if (NewState != DISABLE)
   {
     LTDC_Layerx->CR |= (uint32_t)LTDC_LxCR_COLKEN;
@@ -668,10 +652,10 @@ STEM_DEBUG
   */
 static void LTDC_SetLayerPos(int LayerIndex, int xPos, int yPos)
 {
-STEM_DEBUG
   int xSize, ySize;
   uint32_t HorizontalStart, HorizontalStop, VerticalStart, VerticalStop;
 
+#if 0
   xSize = LCD_GetXSizeEx(LayerIndex);
   ySize = LCD_GetYSizeEx(LayerIndex);
   HorizontalStart = xPos + HBP + 1;
@@ -686,7 +670,13 @@ STEM_DEBUG
   /* Vertical start and stop position */
   apLayer[LayerIndex]->WVPCR &= ~(LTDC_LxWVPCR_WVSTPOS | LTDC_LxWVPCR_WVSPPOS);
   apLayer[LayerIndex]->WVPCR  = (VerticalStart | (VerticalStop << 16));
+#endif
+
+  xSize = LCD_GetXSizeEx(LayerIndex);
+  ySize = LCD_GetYSizeEx(LayerIndex);
   
+  LTDC_LayerPosition(apLayer[LayerIndex], xPos, yPos);
+  LTDC_LayerSize(apLayer[LayerIndex], xSize, ySize);
   /* Reload configuration */
   LTDC_ReloadConfig(LTDC_SRCR_VBR); /* Reload on next blanking period */
 }
@@ -699,7 +689,6 @@ STEM_DEBUG
   */
 static void LTDC_SetLayerAlpha(int LayerIndex, int Alpha)
 {
-STEM_DEBUG
   /* Set constant alpha value */
   apLayer[LayerIndex]->CACR &= ~(LTDC_LxCACR_CONSTA);
   apLayer[LayerIndex]->CACR  = 255 - Alpha;
@@ -717,7 +706,6 @@ STEM_DEBUG
   */
 static void LTDC_SetLUTEntry(int LayerIndex, uint32_t Color, int Pos) 
 {
-STEM_DEBUG
   uint32_t r, g, b, a;
 
   r = ( Color        & 0xff) << 16;
@@ -744,7 +732,6 @@ STEM_DEBUG
   */
 static void DMA2D_Copy(uint32_t LayerIndex, void * pSrc, void * pDst, uint32_t xSize, uint32_t ySize, uint32_t OffLineSrc, uint32_t OffLineDst)
 {
-STEM_DEBUG
   uint32_t PixelFormat;
 
   PixelFormat =  GetPixelformat(LayerIndex);
@@ -774,7 +761,6 @@ STEM_DEBUG
   */
 static void DMA2D_Fill(uint32_t LayerIndex, void * pDst, uint32_t xSize, uint32_t ySize, uint32_t OffLine, uint32_t ColorIndex)
 {
-STEM_DEBUG
   uint32_t PixelFormat;
 
   PixelFormat = GetPixelformat(LayerIndex);
@@ -798,7 +784,6 @@ STEM_DEBUG
   */
 static void LCD_LL_Init(uint32_t LayerIndex) 
 {
-STEM_DEBUG
   uint32_t xSize, ySize, BytesPerLine, BitsPerPixel, i;
   uint32_t Color;
   static uint32_t Is_Initialized;
@@ -806,6 +791,7 @@ STEM_DEBUG
   LTDC_InitTypeDef       LTDC_InitStruct;
   LTDC_Layer_InitTypeDef LTDC_Layer_Init;
   LTDC_CLUT_InitTypeDef  LTDC_CLUT_InitStruct;
+  NVIC_InitTypeDef		NVIC_InitStructure;
   
   if (LayerIndex >= GUI_NUM_LAYERS) 
   {
@@ -816,7 +802,7 @@ STEM_DEBUG
     Is_Initialized = 1;
     
     /*  Clock configuration */
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2D, ENABLE); 
+//    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2D, ENABLE); 
     
     /* Enable the LTDC Clock */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_LTDC, ENABLE);
@@ -879,9 +865,9 @@ STEM_DEBUG
     LTDC_Init(&LTDC_InitStruct);
     
     LTDC_ITConfig(LTDC_IT_LI, ENABLE);
+
     NVIC_SetPriority(LTDC_IRQn, 0);
     NVIC_EnableIRQ(LTDC_IRQn); 
-    
   }   
   
   xSize = LCD_GetXSizeEx(LayerIndex);
@@ -952,7 +938,6 @@ STEM_DEBUG
   */
 static uint32_t GetBufferSize(uint32_t LayerIndex) 
 {
-STEM_DEBUG
   uint32_t BufferSize;
 
   BufferSize = layer_xsize[LayerIndex] * layer_ysize[LayerIndex] * layer_bpp[LayerIndex];
@@ -972,7 +957,6 @@ STEM_DEBUG
   */
 static void DMA_DrawBitmapL8(void * pSrc, void * pDst,  uint32_t OffSrc, uint32_t OffDst, uint32_t PixelFormatDst, uint32_t xSize, uint32_t ySize)
 {
-STEM_DEBUG
   /* Set up mode */
   DMA2D->CR      = 0x00010000UL | (1 << 9);         /* Control Register (Memory to memory with pixel format conversion and TCIE) */
   
@@ -1009,7 +993,6 @@ STEM_DEBUG
   */
 static void CUSTOM_LCD_CopyBuffer(uint32_t LayerIndex, uint32_t IndexSrc, uint32_t IndexDst) 
 {
-STEM_DEBUG
   uint32_t BufferSize, AddrSrc, AddrDst;
 
   BufferSize = GetBufferSize(LayerIndex);
@@ -1032,7 +1015,6 @@ STEM_DEBUG
   */
 static void CUSTOM_LCD_CopyRect(uint32_t LayerIndex, uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t xSize, uint32_t ySize) 
 {
-STEM_DEBUG
   uint32_t BufferSize, AddrSrc, AddrDst;
 
   BufferSize = GetBufferSize(LayerIndex);
@@ -1053,7 +1035,6 @@ STEM_DEBUG
   */
 static void CUSTOM_LCD_FillRect(uint32_t LayerIndex, uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t PixelIndex) 
 {
-STEM_DEBUG
   uint32_t BufferSize, AddrDst;
   uint32_t xSize, ySize;
 
@@ -1086,7 +1067,6 @@ STEM_DEBUG
   */
 static void LCD_DrawBitmap16bpp(int LayerIndex, int x, int y, U16 const * p, int xSize, int ySize, int BytesPerLine)
 {
-STEM_DEBUG
   uint32_t BufferSize, AddrDst;
   int OffLineSrc, OffLineDst;
 
@@ -1110,7 +1090,6 @@ STEM_DEBUG
   */
 static void LCD_DrawBitmap8bpp(int LayerIndex, int x, int y, U8 const * p, int xSize, int ySize, int BytesPerLine)
 {
-STEM_DEBUG
   uint32_t BufferSize, AddrDst;
   int OffLineSrc, OffLineDst;
   uint32_t PixelFormat;
@@ -1128,9 +1107,8 @@ STEM_DEBUG
   * @param  None 
   * @retval None
   */
-void DMA2D_ISR_Handler(void)
+void DMA2D_IRQHandler(void)
 {
-STEM_DEBUG
   DMA2D->IFCR = (U32)DMA2D_IFSR_CTCIF;
 }
 
@@ -1139,9 +1117,8 @@ STEM_DEBUG
   * @param  None 
   * @retval None
   */
-void LTDC_ISR_Handler(void) 
+void LTDC_IRQHandler(void) 
 {
-STEM_DEBUG
   uint32_t Addr;
   uint32_t i;
 
@@ -1157,7 +1134,6 @@ STEM_DEBUG
 	  
       GUI_MULTIBUF_ConfirmEx(i, layer_pending_buffer[i]);
       
-
       layer_pending_buffer[i] = -1;
     }
   }
@@ -1176,7 +1152,6 @@ STEM_DEBUG
   */
 int LCD_X_DisplayDriver(unsigned LayerIndex, unsigned Cmd, void * pData)
 {
-STEM_DEBUG
   int r = 0;
   int xPos, yPos;
   
@@ -1255,7 +1230,6 @@ STEM_DEBUG
       /* Required for setting the layer position which is passed in the 'xPos' and 'yPos' element of pData */
       LCD_X_SETSIZE_INFO * p;
       
-      
       GUI_GetLayerPosEx(LayerIndex, &xPos, &yPos);
       p = (LCD_X_SETSIZE_INFO *)pData;
       layer_xsize[LayerIndex] = p->xSize;
@@ -1307,7 +1281,6 @@ STEM_DEBUG
   */
 void LCD_X_Config(void) 
 {
-STEM_DEBUG
   uint32_t i;
   
   /* At first initialize use of multiple buffers on demand */
@@ -1363,7 +1336,7 @@ STEM_DEBUG
     LCD_SetDevFunc(i, LCD_DEVFUNC_COPYBUFFER, (void(*)(void))CUSTOM_LCD_CopyBuffer);
     LCD_SetDevFunc(i, LCD_DEVFUNC_COPYRECT,   (void(*)(void))CUSTOM_LCD_CopyRect);
     
-#if 0
+#if 1
     /* Filling via DMA2D does only work with 16bpp or more */
     if (GetPixelformat(i) <= LTDC_Pixelformat_ARGB4444) {
       LCD_SetDevFunc(i, LCD_DEVFUNC_FILLRECT, (void(*)(void))CUSTOM_LCD_FillRect);
@@ -1405,7 +1378,6 @@ STEM_DEBUG
   */
 static void LCD_AF_GPIOConfig(void)
 {
-STEM_DEBUG
   GPIO_InitTypeDef GPIO_InitStruct;
   
   /* Enable GPIOA, GPIOB, GPIOC, GPIOD, GPIOF, GPIOG AHB Clocks */

@@ -33,6 +33,8 @@ enum {
 
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
+	uint32_t count=0;
+	char buf[64];
 	LCD_Init();
 	LTDC_Cmd(ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
@@ -42,8 +44,9 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 //	serial_println("hardware setup ok");
 
 	for (;;) {
-//		Delay(100000);
-		serial_println("*");
+		Delay(100000);
+		sprintf(buf, "test: %d", count++);
+		GUI_DispStringAt(buf, 8, 8);
 		STM_EVAL_LEDToggle(LED3);
 	}
 }

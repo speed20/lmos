@@ -122,6 +122,7 @@ void TIM5_IRQHandler(void)
 	}
 }
 
+#endif
 void EXTI0_IRQHandler(void)
 //void EXTI15_10_IRQHandler(void)
 {
@@ -131,21 +132,7 @@ void EXTI0_IRQHandler(void)
 	/* Only line 6 is enabled, so there is no need to test which line generated
 	the interrupt. */
 	EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
-	
-	/* This interrupt does nothing more than demonstrate how to synchronise a
-	task with an interrupt.  First the handler releases a semaphore.
-	lHigherPriorityTaskWoken has been initialised to zero. */
-	xSemaphoreGiveFromISR( xTestSemaphore, &lHigherPriorityTaskWoken );
-	
-	/* If there was a task that was blocked on the semaphore, and giving the
-	semaphore caused the task to unblock, and the unblocked task has a priority
-	higher than the currently executing task (the task that this interrupt
-	interrupted), then lHigherPriorityTaskWoken will have been set to pdTRUE.
-	Passing pdTRUE into the following macro call will cause this interrupt to
-	return directly to the unblocked, higher priority, task. */
-	portEND_SWITCHING_ISR( lHigherPriorityTaskWoken );
 }
-#endif
 
 /*
 void EXTI1_IRQHandler(void)

@@ -76,35 +76,6 @@ void vApplicationTickHook( void )
 }
 /*-----------------------------------------------------------*/
 
-static void prvSetupNestedFPUInterruptsTest( void )
-{
-	NVIC_InitTypeDef NVIC_InitStructure;
-
-	/* Enable the TIM2 interrupt in the NVIC.  The timer itself is not used,
-	just its interrupt vector to force nesting from software.  TIM2 must have
-	a lower priority than TIM3, and both must have priorities above
-	configMAX_SYSCALL_INTERRUPT_PRIORITY. */
-	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY - 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0f;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init( &NVIC_InitStructure );
-
-	TIM2_Config();
-
-#if 0
-	/* Enable the TIM3 interrupt in the NVIC.  The timer itself is not used,
-	just its interrupt vector to force nesting from software.  TIM2 must have
-	a lower priority than TIM3, and both must have priorities above
-	configMAX_SYSCALL_INTERRUPT_PRIORITY. */
-	NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY - 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init( &NVIC_InitStructure );
-#endif
-}
-/*-----------------------------------------------------------*/
 
 void vApplicationMallocFailedHook( void )
 {
