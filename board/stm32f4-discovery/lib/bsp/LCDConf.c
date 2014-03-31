@@ -101,7 +101,7 @@ Purpose     : Display controller configuration (single layer)
 #define NUM_VSCREENS 1
 
 #undef  GUI_NUM_LAYERS
-#define GUI_NUM_LAYERS 1
+#define GUI_NUM_LAYERS 2
 
 #define COLOR_CONVERSION_0 GUICC_M565
 #define DISPLAY_DRIVER_0   GUIDRV_LIN_16

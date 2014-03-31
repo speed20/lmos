@@ -34,7 +34,7 @@ enum {
 #define FALLING(last, new) (last == HIGH && new == LOW)
 
 struct draw_ctx {
-	GUI_POINT *data;
+	uint16_t *data;
 	uint16_t nr_point;
 	uint32_t freq;
 	uint32_t duty;
@@ -45,14 +45,13 @@ void draw_waveform(void *pdata)
 	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
 	unsigned char buf[32];
 
-	sprintf(buf, "freq: %06dhz\t\t\tduty:%2d", ctx->freq, ctx->duty);
+	sprintf(buf, "freq: %06dhz\t\t\tduty:%3d", ctx->freq, ctx->duty);
 
 	GUI_MULTIBUF_Begin();
 	GUI_Clear();
-//	GUI_ClearRect(0, 60, WIDTH, 200);
-	GUI_DrawPolyLine(ctx->data, ctx->nr_point, 0, 110);
-
+	GUI_DrawGraph(ctx->data, ctx->nr_point, 0, 110);
 	GUI_SetTextMode(GUI_TM_TRANS);
+	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 0);
 	GUI_DispStringAt(buf, 0, 270);
 	GUI_MULTIBUF_End();
 }
@@ -64,7 +63,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	uint8_t level, last_level;
 	uint32_t t0, diff, freq, duty;
 	uint32_t sample_freq = 50000;
-	GUI_POINT point[WIDTH];
+	uint16_t point[WIDTH];
 	GUI_RECT Rect = {0, 60, WIDTH, 300};
 	struct draw_ctx ctx = {.data = point, .nr_point = WIDTH, .freq = 0, .duty = 0};
 
@@ -72,9 +71,10 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	LTDC_Cmd(ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
 	GUI_Init();
+	GUI_SelectLayer(1);
+	GUI_SetBkColor(GUI_TRANSPARENT);
 	GUI_SetColor(GUI_RED);
-	GUI_DispStringHCenterAt("Hello world!", 120, 0);
-//	GUI_DispStringAt("Hello world!", 8, 8);
+	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 0);
 	GUI_SetPenSize(1);
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
@@ -85,13 +85,8 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	ADC_SoftwareStartConv(ADC1);
 	serial_println("start pulse task");
 
-	for (i=0; i<WIDTH; i++) {
-		point[i].x = i;
-	}
-
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
-
 #if 1
 		t0 = 0;
 		last_level = 0;
@@ -118,10 +113,11 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 		}
 
 		for (i=0; i<WIDTH; i++) {
-			point[i].y = 100 * ((float)adc_value[i*STEP] / 4096.0f);
+			point[i] = 100 * ((float)adc_value[i*STEP] / 4096.0f);
 		}
 
-		GUI_MEMDEV_Draw(&Rect, &draw_waveform, &ctx, 0, 0);
+		draw_waveform(&ctx);
+//		GUI_MEMDEV_Draw(&Rect, &draw_waveform, &ctx, 0, 0);
 #endif
 	}
 }
