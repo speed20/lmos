@@ -8,52 +8,73 @@
 #include "stm32f4xx_adc.h"
 #include "stm32f429i_discovery_lcd.h"
 #include "GUI.h"
+#include "GRAPH.h"
 
 #define WIDTH 240
 #define STEP 4
 #define ADC_DMA_BUF_LEN (WIDTH*STEP)
 
-static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
-SemaphoreHandle_t xPulseSemaphore = NULL;
-volatile uint16_t adc_value[ADC_DMA_BUF_LEN];
-void ADC1_CH6_DMA_Config(void);
-void adc_sample_freq_set(uint32_t freq);
-void set_pcm_out_freq(uint32_t freq, uint32_t duty);
-
-void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
-{
-	xTaskCreate(vPulseTask, (signed char *)"Pulse", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
-}
+#define RAISING(last, new) (last == LOW && new == HIGH)
+#define FALLING(last, new) (last == HIGH && new == LOW)
 
 enum {
 	LOW		= 0,
 	HIGH	= 1
 };
 
-#define RAISING(last, new) (last == LOW && new == HIGH)
-#define FALLING(last, new) (last == HIGH && new == LOW)
+static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
+static portTASK_FUNCTION_PROTO(vDrawTask, pvParameters);
 
-struct draw_ctx {
-	uint16_t *data;
-	uint16_t nr_point;
-	uint32_t freq;
-	uint32_t duty;
-};
+volatile uint16_t adc_value[ADC_DMA_BUF_LEN];
+SemaphoreHandle_t xPulseSemaphore = NULL;
+GRAPH_DATA_Handle hData;
+WM_HWIN hGraph;
 
-void draw_waveform(void *pdata)
+void ADC1_CH6_DMA_Config(void);
+void adc_sample_freq_set(uint32_t freq);
+void set_pcm_out_freq(uint32_t freq, uint32_t duty);
+
+void vStartDrawTask(unsigned portBASE_TYPE uxPriority)
 {
-	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
-	unsigned char buf[32];
+	xTaskCreate(vDrawTask, (signed char *)"Draw", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
+}
 
-	sprintf(buf, "freq: %06dhz\t\t\tduty:%3d", ctx->freq, ctx->duty);
+void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
+{
+	xTaskCreate(vPulseTask, (signed char *)"Pulse", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
+}
 
-	GUI_MULTIBUF_Begin();
-	GUI_Clear();
-	GUI_DrawGraph(ctx->data, ctx->nr_point, 0, 110);
-	GUI_SetTextMode(GUI_TM_TRANS);
+static portTASK_FUNCTION(vDrawTask, pvParameters)
+{
+	uint16_t point[WIDTH];
+	uint16_t i;
+
+	GUI_SelectLayer(1);
+	GUI_SetBkColor(GUI_BLACK);
+	GUI_SetColor(GUI_RED);
 	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 0);
-	GUI_DispStringAt(buf, 0, 270);
-	GUI_MULTIBUF_End();
+	GUI_SetPenSize(1);
+
+	hGraph = GRAPH_CreateEx(0, 20, WIDTH, 200, 0, WM_CF_SHOW, 0, GUI_ID_GRAPH0);
+	GRAPH_SetGridDistX(hGraph, 20);
+	GRAPH_SetGridDistY(hGraph,20);       
+	GRAPH_SetGridVis(hGraph, 1);
+
+	hData = GRAPH_DATA_YT_Create(GUI_DARKGREEN, WIDTH, point, WIDTH);
+	GRAPH_AttachData(hGraph, hData);
+
+//	GRAPH_SetVSizeY(hGraph, 4096);
+
+//	GRAPH_SetBorder(hGraph,1,1,1,1);
+
+	for (i=0; i<WIDTH; i++) {
+		GRAPH_DATA_YT_AddValue(hData, i);
+	}
+
+	while (1) {
+		GUI_Exec();
+//		Delay(1000);
+	}
 }
 
 static portTASK_FUNCTION(vPulseTask, pvParameters)
@@ -63,19 +84,9 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	uint8_t level, last_level;
 	uint32_t t0, diff, freq, duty;
 	uint32_t sample_freq = 50000;
-	uint16_t point[WIDTH];
-	GUI_RECT Rect = {0, 60, WIDTH, 300};
-	struct draw_ctx ctx = {.data = point, .nr_point = WIDTH, .freq = 0, .duty = 0};
+	TickType_t xFlashRate, xLastFlashTime;
 
-	LCD_Init();
-	LTDC_Cmd(ENABLE);
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
-	GUI_Init();
-	GUI_SelectLayer(1);
-	GUI_SetBkColor(GUI_TRANSPARENT);
-	GUI_SetColor(GUI_RED);
-	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 0);
-	GUI_SetPenSize(1);
+	serial_println("start pulse task");
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
 	xSemaphoreTake(xPulseSemaphore, 0);
@@ -83,13 +94,27 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	adc_sample_freq_set(sample_freq);
 	ADC1_CH6_DMA_Config();
 	ADC_SoftwareStartConv(ADC1);
-	serial_println("start pulse task");
 
-	for (;;) {
+	LCD_Init();
+	LTDC_Cmd(ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+	GUI_Init();
+
+	vStartDrawTask(tskIDLE_PRIORITY + 1UL);
+	xLastFlashTime = xTaskGetTickCount();
+	xFlashRate = 50000;
+#if 0
+	while(1) {
+		vTaskDelayUntil(&xLastFlashTime, xFlashRate);
+	};
+#endif
+
+	while (1) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
 #if 1
 		t0 = 0;
 		last_level = 0;
+		GRAPH_DATA_YT_Clear(hData);
 		for (i=0; i<ADC_DMA_BUF_LEN; i++) {
 			if (adc_value[i] >= 300) {
 				level = HIGH;
@@ -99,25 +124,22 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 			if (RAISING(last_level, level)) {
 				diff = i - t0;
 				freq = sample_freq / diff;
-				if (abs(ctx.freq - freq) > 10)
-					ctx.freq = freq;
+//				if (abs(ctx.freq - freq) > 10)
+//					ctx.freq = freq;
 				t0 = i;
 			} else if (FALLING(last_level, level)) {
 				diff = i - t0;
 				freq = sample_freq / diff;
-				duty = ctx.freq * 100 / freq;
-				if (abs(ctx.duty - duty) > 5)
-					ctx.duty = duty;
+//				duty = ctx.freq * 100 / freq;
+//				if (abs(ctx.duty - duty) > 5)
+//					ctx.duty = duty;
 			}
 			last_level = level;
+			if (i%STEP == 0) {
+				GRAPH_DATA_YT_AddValue(hData, 1000 * adc_value[i]/4096);
+			}
 		}
 
-		for (i=0; i<WIDTH; i++) {
-			point[i] = 100 * ((float)adc_value[i*STEP] / 4096.0f);
-		}
-
-		draw_waveform(&ctx);
-//		GUI_MEMDEV_Draw(&Rect, &draw_waveform, &ctx, 0, 0);
 #endif
 	}
 }
