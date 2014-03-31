@@ -31,6 +31,7 @@ enum {
 #define RAISING(last, new) (last == LOW && new == HIGH)
 #define FALLING(last, new) (last == HIGH && new == LOW)
 
+#if 0
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
 	uint32_t count=0;
@@ -51,7 +52,22 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	}
 }
 
-#if 0
+#else
+
+struct draw_ctx {
+	GUI_POINT *data;
+	uint16_t nr_point;
+};
+
+void draw_waveform(void *pdata)
+{
+	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
+	GUI_MULTIBUF_Begin();
+	GUI_Clear();
+	GUI_DrawPolyLine(ctx->data, ctx->nr_point, 0, 60);
+	GUI_MULTIBUF_End();
+}
+
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
 	uint16_t i, last_value;
@@ -62,8 +78,22 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	uint32_t sample_freq = 10000;
 //	uint8_t bit[1024];
 	uint16_t hist[16];
- 	Point pp[240];
+	GUI_POINT point[240];
 	uint32_t sum, sample_point;
+	GUI_MEMDEV_Handle handle;
+	GUI_RECT Rect = {0, 60, 240, 200};
+	struct draw_ctx ctx = {.data = point};
+
+	LCD_Init();
+	LTDC_Cmd(ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+	GUI_Init();
+//	handle = GUI_MEMDEV_Create(0, 60, 240, 100);
+//	GUI_MEMDEV_Select(handle);
+	GUI_SetColor(GUI_GREEN);
+	GUI_DispStringAt("Hello world!", 8, 8);
+//	GUI_SetDrawMode(LCD_DRAWMODE_NORMAL);
+//	GUI_SetPenSize(1);
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
 	xSemaphoreTake(xPulseSemaphore, 0);
@@ -74,10 +104,8 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	serial_println("start pulse task");
 
 	for (i=0; i<240; i++) {
-		pp[i].X = i;
-//		pp[i].Y = 0;
+		point[i].x = i;
 	}
-//	LCD_PolyLine(pp, 240);
 
 	counter = 0;
 	t0 = 0;
@@ -90,18 +118,23 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 
 		v = adc_value[0];
 		for (i=sample_point - 1; i>0; i--) {
-			pp[i].Y = pp[i-1].Y;
+			point[i].y = point[i-1].y;
 		}
-		pp[0].Y = 100 * ((float)v / 4096.0f) + 160;
-//		LCD_Clear(LCD_COLOR_WHITE);
-//		LCD_PolyLine(pp, sample_point);
+		point[0].y = 100.0 * ((float)v / 4096.0f);// + 160;
+
+		ctx.nr_point = sample_point;
+		if (counter % (sample_freq / 2000) == 0) {
+			GUI_MEMDEV_Draw(&Rect, &draw_waveform, &ctx, 0, 0);
+		}
 
 		if (sample_point < 240)
 			sample_point++;
 
-		serial_println("%d", v);
+		counter++;
 
-			STM_EVAL_LEDToggle(LED3);
+//		serial_println("%d", v);
+
+//		STM_EVAL_LEDToggle(LED3);
 
 #if 0
 		if (adc_value[0] >= 300) {

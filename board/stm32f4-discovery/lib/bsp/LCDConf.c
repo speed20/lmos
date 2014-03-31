@@ -95,7 +95,7 @@ Purpose     : Display controller configuration (single layer)
 #define VFP  3
 
 /* Number of multiple buffers to be used */
-#define NUM_BUFFERS  2
+#define NUM_BUFFERS  3
 
 /* Number of virtual screens to be used */
 #define NUM_VSCREENS 1
@@ -833,7 +833,7 @@ static void LCD_LL_Init(uint32_t LayerIndex)
     
     
     /* Configure PLLSAI prescalers for LCD */
-    RCC_PLLSAIConfig(192, 7, 4);
+    RCC_PLLSAIConfig(192, 7, 3);
     RCC_LTDCCLKDivConfig(RCC_PLLSAIDivR_Div8);
     
     /* Enable PLLSAI Clock */
