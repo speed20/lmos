@@ -9,7 +9,9 @@
 #include "stm32f429i_discovery_lcd.h"
 #include "GUI.h"
 
-#define ADC_DMA_BUF_LEN 1
+#define WIDTH 240
+#define STEP 4
+#define ADC_DMA_BUF_LEN (WIDTH*STEP)
 
 static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
 SemaphoreHandle_t xPulseSemaphore = NULL;
@@ -31,40 +33,27 @@ enum {
 #define RAISING(last, new) (last == LOW && new == HIGH)
 #define FALLING(last, new) (last == HIGH && new == LOW)
 
-#if 0
-static portTASK_FUNCTION(vPulseTask, pvParameters)
-{
-	uint32_t count=0;
-	char buf[64];
-	LCD_Init();
-	LTDC_Cmd(ENABLE);
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
-	GUI_Init();
-	GUI_SetColor(GUI_RED);
-	GUI_DispStringAt("Hello world!", 8, 8);
-//	serial_println("hardware setup ok");
-
-	for (;;) {
-		Delay(100000);
-		sprintf(buf, "test: %d", count++);
-		GUI_DispStringAt(buf, 8, 8);
-		STM_EVAL_LEDToggle(LED3);
-	}
-}
-
-#else
-
 struct draw_ctx {
 	GUI_POINT *data;
 	uint16_t nr_point;
+	uint32_t freq;
+	uint32_t duty;
 };
 
 void draw_waveform(void *pdata)
 {
 	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
+	unsigned char buf[32];
+
+	sprintf(buf, "freq: %06dhz\t\t\tduty:%2d", ctx->freq, ctx->duty);
+
 	GUI_MULTIBUF_Begin();
 	GUI_Clear();
-	GUI_DrawPolyLine(ctx->data, ctx->nr_point, 0, 60);
+//	GUI_ClearRect(0, 60, WIDTH, 200);
+	GUI_DrawPolyLine(ctx->data, ctx->nr_point, 0, 110);
+
+	GUI_SetTextMode(GUI_TM_TRANS);
+	GUI_DispStringAt(buf, 0, 270);
 	GUI_MULTIBUF_End();
 }
 
@@ -72,28 +61,21 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
 	uint16_t i, last_value;
 	uint16_t v;
-	uint8_t level, last_level, start_condation;
-	uint32_t counter, t0, diff, freq, period, tolerance, index;
-	uint8_t buf[64];
-	uint32_t sample_freq = 10000;
-//	uint8_t bit[1024];
-	uint16_t hist[16];
-	GUI_POINT point[240];
-	uint32_t sum, sample_point;
-	GUI_MEMDEV_Handle handle;
-	GUI_RECT Rect = {0, 60, 240, 200};
-	struct draw_ctx ctx = {.data = point};
+	uint8_t level, last_level;
+	uint32_t t0, diff, freq, duty;
+	uint32_t sample_freq = 50000;
+	GUI_POINT point[WIDTH];
+	GUI_RECT Rect = {0, 60, WIDTH, 300};
+	struct draw_ctx ctx = {.data = point, .nr_point = WIDTH, .freq = 0, .duty = 0};
 
 	LCD_Init();
 	LTDC_Cmd(ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
 	GUI_Init();
-//	handle = GUI_MEMDEV_Create(0, 60, 240, 100);
-//	GUI_MEMDEV_Select(handle);
-	GUI_SetColor(GUI_GREEN);
-	GUI_DispStringAt("Hello world!", 8, 8);
-//	GUI_SetDrawMode(LCD_DRAWMODE_NORMAL);
-//	GUI_SetPenSize(1);
+	GUI_SetColor(GUI_RED);
+	GUI_DispStringHCenterAt("Hello world!", 120, 0);
+//	GUI_DispStringAt("Hello world!", 8, 8);
+	GUI_SetPenSize(1);
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
 	xSemaphoreTake(xPulseSemaphore, 0);
@@ -103,105 +85,46 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	ADC_SoftwareStartConv(ADC1);
 	serial_println("start pulse task");
 
-	for (i=0; i<240; i++) {
+	for (i=0; i<WIDTH; i++) {
 		point[i].x = i;
 	}
 
-	counter = 0;
-	t0 = 0;
-	start_condation = 8;
-	index = 0;
-	period = 0;
-	sample_point = 1;
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
 
-		v = adc_value[0];
-		for (i=sample_point - 1; i>0; i--) {
-			point[i].y = point[i-1].y;
-		}
-		point[0].y = 100.0 * ((float)v / 4096.0f);// + 160;
-
-		ctx.nr_point = sample_point;
-		if (counter % (sample_freq / 2000) == 0) {
-			GUI_MEMDEV_Draw(&Rect, &draw_waveform, &ctx, 0, 0);
-		}
-
-		if (sample_point < 240)
-			sample_point++;
-
-		counter++;
-
-//		serial_println("%d", v);
-
-//		STM_EVAL_LEDToggle(LED3);
-
-#if 0
-		if (adc_value[0] >= 300) {
-			level = HIGH;
-		} else {
-			level = LOW;
-		}
-		if (RAISING(last_level, level)) {
-			diff = counter - t0 + 0xffffffff;
-			sprintf(buf, "^: %d\n\r", diff);
-//			VCP_send_str(buf);
-			if (start_condation > 0) {
-				if (start_condation == 1) {
-					period = diff;
-					tolerance = period / 4;
-					freq = sample_freq * 100 / period;
-					sprintf(buf, "period: %d freq: %d\n\r", period, freq);
-					VCP_send_str(buf);
-				}
-				t0 = counter; // data start 
-				start_condation--;
+#if 1
+		t0 = 0;
+		last_level = 0;
+		for (i=0; i<ADC_DMA_BUF_LEN; i++) {
+			if (adc_value[i] >= 300) {
+				level = HIGH;
 			} else {
-				if (period - tolerance < diff && diff < period + tolerance) {
-					bit[index++] = 0;
-					t0 = counter;
-				}
+				level = LOW;
 			}
-		} else if (FALLING(last_level, level)) {
-			x = 0;
-			diff = counter - t0 + 0xffffffff;
-			sprintf(buf, "V: %d\n\r", diff);
-//			VCP_send_str(buf);
-			if (start_condation == 0) {
-				if (period - tolerance < diff && diff < period + tolerance) {
-					bit[index++] = 1;
-					t0 = counter;
-				}
+			if (RAISING(last_level, level)) {
+				diff = i - t0;
+				freq = sample_freq / diff;
+				if (abs(ctx.freq - freq) > 10)
+					ctx.freq = freq;
+				t0 = i;
+			} else if (FALLING(last_level, level)) {
+				diff = i - t0;
+				freq = sample_freq / diff;
+				duty = ctx.freq * 100 / freq;
+				if (abs(ctx.duty - duty) > 5)
+					ctx.duty = duty;
 			}
+			last_level = level;
 		}
 
-		if (index >= 1024) index = 0;
-
-		if (counter - t0 >= period * 3 / 2) { // idle
-			for (i=0; i<index; i++) {
-				serial_println("%d", bit[i]);
-			}
-
-			index = 0;
-			start_condation = 8;
-			period = 0;
+		for (i=0; i<WIDTH; i++) {
+			point[i].y = 100 * ((float)adc_value[i*STEP] / 4096.0f);
 		}
-				
-		last_level = level;
-		counter++;
 
-
-
+		GUI_MEMDEV_Draw(&Rect, &draw_waveform, &ctx, 0, 0);
 #endif
-//		sprintf((char*)buf, "%d", x);
-//		LCD_DisplayStringLine(LCD_LINE_6, (uint8_t*)buf);
-
-//		sprintf(buf, "%d\n\r", x);
-//		VCP_send_data(&x, 2);
-//		VCP_send_str(buf);
 	}
 }
-#endif
 
 /**
   * @brief  ADC1 channel6 with DMA configuration
