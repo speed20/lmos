@@ -8,16 +8,19 @@
 #include "stm32f4xx_adc.h"
 #include "stm32f429i_discovery_lcd.h"
 #include "GUI.h"
+#include "math.h"
 
 #define WIDTH 240
-#define STEP 4
+#define STEP 10
 #define ADC_DMA_BUF_LEN (WIDTH*STEP)
 
 #define RAISING(last, new) (last == LOW && new == HIGH)
 #define FALLING(last, new) (last == HIGH && new == LOW)
 
 #define V_RANGE 100
-#define V_OFFSET 160
+#define V_OFFSET 150
+
+#define THRESHHOLD 2048
 
 enum {
 	LOW		= 0,
@@ -41,7 +44,8 @@ static portTASK_FUNCTION_PROTO(vCtrlTask, pvParameters);
 static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
 
 volatile uint16_t adc_value[ADC_DMA_BUF_LEN];
-int32_t sample_freq = 50000;
+int32_t sample_freq = 100000;
+uint8_t step = STEP;
 
 void vStartCtrlTask(unsigned portBASE_TYPE uxPriority)
 {
@@ -62,26 +66,32 @@ static portTASK_FUNCTION(vCtrlTask, pvParameters)
 		serial_read(0, &ch, 1);
 		switch (ch) {
 			case '=':
-				sample_freq += 100;
+				sample_freq += 200;
 				flag = 1;
 				break;
 			case '-':
-				sample_freq -= 100;
+				sample_freq -= 200;
 				flag = 1;
 				break;
 			case '1':
-				sample_freq = 50000;
+				sample_freq = 100000;
 				flag = 1;
 				break;
+			case 's':
+				ADC_Cmd(ADC1, DISABLE);
+				break;
+			case 'c':
+				ADC_Cmd(ADC1, ENABLE);
+				break;
 			default:
-				serial_println("unknown command");
+				serial_println("=:increase\n\r-:decrease\n\r1:reset\n\r");
 		}
 
 		if (flag) {
 			if (sample_freq < 0)
 				sample_freq = 100;
-			if (sample_freq > 100000)
-				sample_freq = 100000;
+			if (sample_freq > 200000)
+				sample_freq = 200000;
 
 			adc_sample_freq_set(sample_freq);
 		}
@@ -110,7 +120,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
 	xSemaphoreTake(xPulseSemaphore, 0);
-	set_pcm_out_freq(1000, 50); /* 2k, 20% duty */
+	set_pcm_out_freq(10000, 30); /* 2k, 20% duty */
 	adc_sample_freq_set(sample_freq);
 	ADC1_CH6_DMA_Config();
 //	ADC_SoftwareStartConv(ADC1);
@@ -122,7 +132,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 		t0 = 0;
 		last_level = 0;
 		for (i=0; i<ADC_DMA_BUF_LEN; i++) {
-			if (adc_value[i] >= 300) {
+			if (adc_value[i] >= THRESHHOLD) {
 				level = HIGH;
 			} else {
 				level = LOW;
@@ -144,7 +154,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 		}
 
 		for (i=0; i<WIDTH; i++) {
-			point[i] = V_RANGE * adc_value[i*STEP] / 4096;
+			point[i] = roundf((float)(V_RANGE * adc_value[i*step]) / 4096.0);
 		}
 
 		draw_waveform(&ctx);
@@ -204,7 +214,7 @@ void ADC1_CH6_DMA_Config(void)
 	/* Configure ADC1 Channel6 pin as analog input ******************************/
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	/* ADC Common Init **********************************************************/
@@ -254,30 +264,30 @@ void set_pcm_out_freq(uint32_t freq, uint32_t duty)
 	GPIO_InitTypeDef GPIO_InitStructure;
 
 	/* GPIOE clock enable */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
-	/* TIM1 channel 1 pin (PE.9) configuration */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+	/* TIM3 channel 8 pin (PC.8) configuration */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOE, &GPIO_InitStructure);
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-	/* Connect TIM pins to AF2 */
-	GPIO_PinAFConfig(GPIOE, GPIO_PinSource9, GPIO_AF_TIM1);
+	/* Connect TIM pins to PC.8 */
+	GPIO_PinAFConfig(GPIOC, GPIO_PinSource8, GPIO_AF_TIM3);
 
-	TIM_DeInit(TIM1);
-	/* TIM1 clock enable */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+	TIM_DeInit(TIM3);
+	/* TIM3 clock enable */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
 	/* Time base configuration */
 	TIM_TimeBaseStructure.TIM_Period = 1000000 / freq;
-	TIM_TimeBaseStructure.TIM_Prescaler = 168 - 1; // 1M
+	TIM_TimeBaseStructure.TIM_Prescaler = 90 - 1; // 1M
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
 	TIM_OCStructInit(&TIM_OCInitStructure);
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
@@ -288,24 +298,22 @@ void set_pcm_out_freq(uint32_t freq, uint32_t duty)
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
-	TIM_OC1Init(TIM1, &TIM_OCInitStructure);
-//	TIM_ForcedOC1Config(TIM1,TIM_ForcedAction_Active); 
+	TIM_OC3Init(TIM3, &TIM_OCInitStructure);
 
-	TIM_Cmd(TIM1, ENABLE);
-	TIM_CtrlPWMOutputs(TIM1, ENABLE);
-//	TIM_CCxCmd(TIM2, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_Cmd(TIM3, ENABLE);
+	TIM_CtrlPWMOutputs(TIM3, ENABLE);
 }
 
 void adc_sample_freq_set(uint32_t freq)
 {
-	serial_println("set adc sample freq to %dhz", freq);
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
 	uint16_t prescaler, period;
 
-	prescaler = 42 - 1; // 2M
-	period = 84000000 / (prescaler + 1) / freq - 1;
+	serial_println("set sample freq to %dhz", freq);
+	prescaler = 45 - 1; // 2M
+	period = 90000000 / (prescaler + 1) / freq - 1;
 
 	TIM_DeInit(TIM2);
 	/* TIM2 clock enable */
@@ -334,34 +342,6 @@ void adc_sample_freq_set(uint32_t freq)
 	TIM_Cmd(TIM2, ENABLE);
 }
 
-void set_timer(TIM_TypeDef *TIMx, uint32_t freq)
-{
-	serial_println("set timer %dhz", freq);
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	GPIO_InitTypeDef GPIO_InitStructure;
-	uint16_t prescaler, period;
-
-	prescaler = 42 - 1; // 2M
-	period = 84000000 / (prescaler + 1) / freq - 1;
-
-	TIM_DeInit(TIMx);
-	/* TIM2 clock enable */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-
-	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Period = period;
-	TIM_TimeBaseStructure.TIM_Prescaler = prescaler;
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIMx, &TIM_TimeBaseStructure);
-	/* TIM IT enable */
-	TIM_ClearFlag(TIMx, TIM_FLAG_Update);
-	TIM_ITConfig(TIMx, TIM_IT_Update, ENABLE);
-
-	/* TIM2 enable counter */
-	TIM_Cmd(TIMx, ENABLE);
-}
-
 void draw_waveform(void *pdata)
 {
 	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
@@ -371,17 +351,19 @@ void draw_waveform(void *pdata)
 
 	GUI_MULTIBUF_Begin();
 	GUI_Clear();
-//	GUI_SetLineStyle(GUI_LS_SOLID);
+	GUI_SetColor(GUI_DARKGREEN);
 	GUI_DrawGraph(ctx->data, ctx->nr_point, 0, V_OFFSET);
 
 	GUI_SetLineStyle(GUI_LS_DOT);
-	GUI_DrawHLine(V_OFFSET - V_RANGE, 0, WIDTH);
+	GUI_DrawHLine(V_OFFSET - V_RANGE - 5, 0, WIDTH);
 	GUI_DrawLine(0, V_OFFSET, WIDTH, V_OFFSET);
-	GUI_DrawHLine(V_OFFSET + V_RANGE, 0, WIDTH);
+	GUI_DrawHLine(V_OFFSET + V_RANGE + 5, 0, WIDTH);
 
 	GUI_SetTextMode(GUI_TM_TRANS);
-	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 10);
-	GUI_DispStringAt(buf, 0, 300);
+	GUI_DispStringHCenterAt("Waveform of PB0", 120, 10);
+	GUI_DispStringAt(buf, 0, 280);
+	GUI_SetColor(GUI_RED);
+	GUI_DispStringAt("Tips: use (+/-) change sample rate", 0, 300);
 	GUI_MULTIBUF_End();
 }
 

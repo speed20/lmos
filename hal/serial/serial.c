@@ -7,7 +7,10 @@
 
 #ifdef SERIAL_USE_DMA
 #define SERIAL_DMA_BUF_LEN 64
-volatile uint8_t flag_uart_send = 0;
+volatile static uint8_t tx_flag = 0;
+volatile static uint8_t rx_flag = 0;
+SemaphoreHandle_t rx_sem = NULL;
+
 uint8_t serial_tx_buf[SERIAL_DMA_BUF_LEN];
 uint8_t serial_rx_buf[SERIAL_DMA_BUF_LEN];
 #endif
@@ -180,6 +183,14 @@ void serial_init(uint8_t port_num, uint32_t baudrate)
 	UartStructure.USART_BaudRate = baudrate;
 	USART_Init(serial_port[port_num], &UartStructure);
 #ifdef SERIAL_USE_DMA
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 8;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	vSemaphoreCreateBinary(rx_sem);
+
 	USART_ITConfig(serial_port[port_num], USART_IT_RXNE, ENABLE);
 	USART_DMACmd(serial_port[port_num], USART_DMAReq_Tx, ENABLE);
 #endif
@@ -199,8 +210,9 @@ void serial_write(uint8_t port, uint8_t *buf, uint32_t len)
 		else
 			size = SERIAL_DMA_BUF_LEN;
 
-		while (flag_uart_send) ; /* wait dma complete */
-		flag_uart_send = 1;
+		while(tx_flag) ;
+		tx_flag = 1;
+
 		memcpy(serial_tx_buf, buf+offset, size);
 		if (port == 0) {
 			DMA_SetCurrDataCounter(DMA2_Stream7, size);
@@ -217,6 +229,15 @@ void serial_write(uint8_t port, uint8_t *buf, uint32_t len)
 
 void serial_read(uint8_t port_num, uint8_t *buf, uint32_t len)
 {
+	uint32_t i;
+
+	for (i=0; i<len; i++) {
+		xSemaphoreTake(rx_sem, portMAX_DELAY);
+	//	while (!rx_flag) ;
+		buf[i] = USART_ReceiveData(serial_port[port_num]);
+//		rx_flag = 0;
+//		serial_println("recv: 0x%02x", buf[i]);
+	}
 }
 #else
 void serial_write(uint8_t port_num, uint8_t *buf, uint32_t len)
@@ -300,28 +321,36 @@ void DMA1_Stream3_IRQHandler(void)
 		/* Clear DMA Stream Transfer Complete interrupt pending bit */
 		DMA_ClearITPendingBit(DMA1_Stream3, DMA_IT_TCIF3);  
 		DMA_Cmd(DMA1_Stream3, DISABLE);
-		flag_uart_send = 0;  
+		tx_flag = 0;
 	}
 }
 
 void DMA2_Stream7_IRQHandler(void)  
 {  
-	STM_EVAL_LEDToggle(LED3);
 	if (DMA_GetITStatus(DMA2_Stream7, DMA_IT_TCIF7)) {
 		/* Clear DMA Stream Transfer Complete interrupt pending bit */
 		DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);  
 		DMA_Cmd(DMA2_Stream7, DISABLE);
-		flag_uart_send = 0;  
+		tx_flag = 0;
 	}
 }
 
 void USART1_IRQHandler(void)
 {
-	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+	long lHigherPriorityTaskWoken = pdFALSE;
+
+	if (USART_GetITStatus(USART1, USART_IT_RXNE)) {
+		STM_EVAL_LEDToggle(LED4);
+		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+
+		xSemaphoreGiveFromISR(rx_sem, &lHigherPriorityTaskWoken);
+		portEND_SWITCHING_ISR(lHigherPriorityTaskWoken);
+
+		//rx_flag = 1;
+	}
 }
 
 void USART2_IRQHandler(void)
 {
-	USART_ClearITPendingBit(USART2, USART_IT_RXNE);
 }
 #endif
