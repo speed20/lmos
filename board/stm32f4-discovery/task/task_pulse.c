@@ -20,7 +20,8 @@
 #define V_RANGE 100
 #define V_OFFSET 150
 
-#define THRESHHOLD 2048
+#define BIAS 2048
+#define THRESHHOLD 300
 
 enum {
 	LOW		= 0,
@@ -100,13 +101,16 @@ static portTASK_FUNCTION(vCtrlTask, pvParameters)
 
 static portTASK_FUNCTION(vPulseTask, pvParameters)
 {
-	uint16_t i, last_value;
+	uint16_t i, j;
 	uint16_t v;
 	uint8_t level, last_level;
-	uint32_t t0, diff, freq, duty;
+	uint32_t t0, tx, diff, freq, duty, period, tolerance;
 	int16_t point[WIDTH];
 	GUI_RECT Rect = {0, 60, WIDTH, 300};
 	struct draw_ctx ctx = {.data = point, .nr_point = WIDTH, .freq = 0, .duty = 0};
+	uint8_t bit[1024], start;
+	uint16_t index;
+	uint16_t log[100];
 
 	LCD_Init();
 	LTDC_Cmd(ENABLE);
@@ -126,24 +130,56 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 //	ADC_SoftwareStartConv(ADC1);
 	serial_println("start pulse task");
 
+	start = 8;
+	index = 0;
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
 #if 1
 		t0 = 0;
+		tx = 0;
 		last_level = 0;
 		for (i=0; i<ADC_DMA_BUF_LEN; i++) {
-			if (adc_value[i] >= THRESHHOLD) {
+			if (adc_value[i] >= BIAS + THRESHHOLD) {
 				level = HIGH;
-			} else {
+			} else if (adc_value[i] <= BIAS - THRESHHOLD) {
 				level = LOW;
 			}
 			if (RAISING(last_level, level)) {
+				diff = i - tx;
+				if (start > 0) {
+					/* use header to caculate period */
+					period = diff;
+					tolerance = period / 3;
+					tx = i;
+					start--;
+//					serial_println("period: %d", period);
+				} else {
+					if (period - tolerance < diff && diff < period + tolerance) {
+						bit[index++] = 0;
+						tx = i;
+//						serial_print("%d", 0);
+					} else {
+//						serial_println("decode error");
+					}
+				}
+
 				diff = i - t0;
 				freq = sample_freq / diff;
 				if (abs(ctx.freq - freq) > 10)
 					ctx.freq = freq;
 				t0 = i;
 			} else if (FALLING(last_level, level)) {
+				diff = i - tx;
+				if (start == 0) {
+					if (period - tolerance < diff && diff < period + tolerance) {
+						bit[index++] = 1;
+						tx = i;
+//						serial_print("%d", 1);
+					} else {
+//						serial_println("decode error");
+					}
+				}
+
 				diff = i - t0;
 				freq = sample_freq / diff;
 				duty = ctx.freq * 100 / freq;
@@ -151,6 +187,17 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 					ctx.duty = duty;
 			}
 			last_level = level;
+
+			if (i - tx > period*2) {
+				index = 0;
+				start = 8;
+				period = 0;
+				for (j=0; j<index; j++) {
+					serial_print("%d\t", bit[j]);
+				}
+				if (j != 0)
+					serial_print("\r\n");
+			}
 		}
 
 		for (i=0; i<WIDTH; i++) {
