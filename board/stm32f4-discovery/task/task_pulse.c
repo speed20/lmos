@@ -13,47 +13,79 @@
 #define STEP 4
 #define ADC_DMA_BUF_LEN (WIDTH*STEP)
 
-static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
-SemaphoreHandle_t xPulseSemaphore = NULL;
-volatile uint16_t adc_value[ADC_DMA_BUF_LEN];
-void ADC1_CH6_DMA_Config(void);
-void adc_sample_freq_set(uint32_t freq);
-void set_pcm_out_freq(uint32_t freq, uint32_t duty);
+#define RAISING(last, new) (last == LOW && new == HIGH)
+#define FALLING(last, new) (last == HIGH && new == LOW)
 
-void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
-{
-	xTaskCreate(vPulseTask, (signed char *)"Pulse", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
-}
+#define V_RANGE 100
+#define V_OFFSET 160
 
 enum {
 	LOW		= 0,
 	HIGH	= 1
 };
 
-#define RAISING(last, new) (last == LOW && new == HIGH)
-#define FALLING(last, new) (last == HIGH && new == LOW)
-
 struct draw_ctx {
-	uint16_t *data;
+	int16_t *data;
 	uint16_t nr_point;
 	uint32_t freq;
 	uint32_t duty;
 };
 
-void draw_waveform(void *pdata)
+SemaphoreHandle_t xPulseSemaphore = NULL;
+void ADC1_CH6_DMA_Config(void);
+void adc_sample_freq_set(uint32_t freq);
+void set_pcm_out_freq(uint32_t freq, uint32_t duty);
+void draw_waveform(void *pdata);
+
+static portTASK_FUNCTION_PROTO(vCtrlTask, pvParameters);
+static portTASK_FUNCTION_PROTO(vPulseTask, pvParameters);
+
+volatile uint16_t adc_value[ADC_DMA_BUF_LEN];
+int32_t sample_freq = 50000;
+
+void vStartCtrlTask(unsigned portBASE_TYPE uxPriority)
 {
-	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
-	unsigned char buf[32];
+	xTaskCreate(vCtrlTask, (signed char *)"Control", 256, NULL, uxPriority, (TaskHandle_t *)NULL);
+}
 
-	sprintf(buf, "freq: %06dhz\t\t\tduty:%3d", ctx->freq, ctx->duty);
+void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
+{
+	xTaskCreate(vPulseTask, (signed char *)"Pulse", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
+}
 
-	GUI_MULTIBUF_Begin();
-	GUI_Clear();
-	GUI_DrawGraph(ctx->data, ctx->nr_point, 0, 110);
-	GUI_SetTextMode(GUI_TM_TRANS);
-	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 0);
-	GUI_DispStringAt(buf, 0, 270);
-	GUI_MULTIBUF_End();
+static portTASK_FUNCTION(vCtrlTask, pvParameters)
+{
+	uint8_t ch, flag;
+
+	while (1) {
+		flag = 0;
+		serial_read(0, &ch, 1);
+		switch (ch) {
+			case '=':
+				sample_freq += 100;
+				flag = 1;
+				break;
+			case '-':
+				sample_freq -= 100;
+				flag = 1;
+				break;
+			case '1':
+				sample_freq = 50000;
+				flag = 1;
+				break;
+			default:
+				serial_println("unknown command");
+		}
+
+		if (flag) {
+			if (sample_freq < 0)
+				sample_freq = 100;
+			if (sample_freq > 100000)
+				sample_freq = 100000;
+
+			adc_sample_freq_set(sample_freq);
+		}
+	}
 }
 
 static portTASK_FUNCTION(vPulseTask, pvParameters)
@@ -62,8 +94,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	uint16_t v;
 	uint8_t level, last_level;
 	uint32_t t0, diff, freq, duty;
-	uint32_t sample_freq = 50000;
-	uint16_t point[WIDTH];
+	int16_t point[WIDTH];
 	GUI_RECT Rect = {0, 60, WIDTH, 300};
 	struct draw_ctx ctx = {.data = point, .nr_point = WIDTH, .freq = 0, .duty = 0};
 
@@ -73,7 +104,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	GUI_Init();
 	GUI_SelectLayer(1);
 	GUI_SetBkColor(GUI_TRANSPARENT);
-	GUI_SetColor(GUI_RED);
+	GUI_SetColor(GUI_DARKGREEN);
 	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 0);
 	GUI_SetPenSize(1);
 
@@ -82,7 +113,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	set_pcm_out_freq(1000, 50); /* 2k, 20% duty */
 	adc_sample_freq_set(sample_freq);
 	ADC1_CH6_DMA_Config();
-	ADC_SoftwareStartConv(ADC1);
+//	ADC_SoftwareStartConv(ADC1);
 	serial_println("start pulse task");
 
 	for (;;) {
@@ -113,7 +144,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 		}
 
 		for (i=0; i<WIDTH; i++) {
-			point[i] = 100 * ((float)adc_value[i*STEP] / 4096.0f);
+			point[i] = V_RANGE * adc_value[i*STEP] / 4096;
 		}
 
 		draw_waveform(&ctx);
@@ -331,7 +362,29 @@ void set_timer(TIM_TypeDef *TIMx, uint32_t freq)
 	TIM_Cmd(TIMx, ENABLE);
 }
 
-//#define ADC_DMA_BUF_LEN 1024
+void draw_waveform(void *pdata)
+{
+	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
+	unsigned char buf[64];
+
+	sprintf(buf, "sample freq: %08dhz\nfreq: %06dhz\t\t\tduty:%3d", sample_freq, ctx->freq, ctx->duty);
+
+	GUI_MULTIBUF_Begin();
+	GUI_Clear();
+//	GUI_SetLineStyle(GUI_LS_SOLID);
+	GUI_DrawGraph(ctx->data, ctx->nr_point, 0, V_OFFSET);
+
+	GUI_SetLineStyle(GUI_LS_DOT);
+	GUI_DrawHLine(V_OFFSET - V_RANGE, 0, WIDTH);
+	GUI_DrawLine(0, V_OFFSET, WIDTH, V_OFFSET);
+	GUI_DrawHLine(V_OFFSET + V_RANGE, 0, WIDTH);
+
+	GUI_SetTextMode(GUI_TM_TRANS);
+	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 10);
+	GUI_DispStringAt(buf, 0, 300);
+	GUI_MULTIBUF_End();
+}
+
 void DMA2_Stream0_IRQHandler(void)
 {
 	long lHigherPriorityTaskWoken = pdFALSE;
@@ -367,3 +420,5 @@ void DMA2_Stream0_IRQHandler(void)
 //		VCP_send_data(&adc_value, 2);
 	}
 }
+
+

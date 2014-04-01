@@ -43,7 +43,8 @@ int main(void)
 	prvSetupHardware();
 
 	//vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
-	vStartPulseTask(mainCREATOR_TASK_PRIORITY);
+	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
+	vStartPulseTask(mainFLASH_TASK_PRIORITY);
 	//vStartMPU6050Tasks(mainFLOP_TASK_PRIORITY);
 	//vStartIRTestTask(mainIR_TASK_PRIORITY);
 	//vStartASRTestTask(mainIR_TASK_PRIORITY);
