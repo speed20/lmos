@@ -21,7 +21,7 @@
 #define V_OFFSET 150
 
 #define BIAS 2048
-#define THRESHHOLD 300
+#define THRESHHOLD 800
 
 enum {
 	LOW		= 0,
@@ -104,7 +104,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	uint16_t i, j;
 	uint16_t v;
 	uint8_t level, last_level;
-	uint32_t t0, tx, diff, freq, duty, period, tolerance;
+	int32_t t0, tx, diff, freq, duty, period, tolerance;
 	int16_t point[WIDTH];
 	GUI_RECT Rect = {0, 60, WIDTH, 300};
 	struct draw_ctx ctx = {.data = point, .nr_point = WIDTH, .freq = 0, .duty = 0};
@@ -132,12 +132,13 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 
 	start = 8;
 	index = 0;
+	tx = 0;
+	t0 = 0;
+	last_level = 0;
+
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
 #if 1
-		t0 = 0;
-		tx = 0;
-		last_level = 0;
 		for (i=0; i<ADC_DMA_BUF_LEN; i++) {
 			if (adc_value[i] >= BIAS + THRESHHOLD) {
 				level = HIGH;
@@ -145,38 +146,35 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 				level = LOW;
 			}
 			if (RAISING(last_level, level)) {
-				diff = i - tx;
+				diff = (i - tx) >= 0 ? (i - tx) : (i - tx + ADC_DMA_BUF_LEN);
 				if (start > 0) {
 					/* use header to caculate period */
 					period = diff;
-					tolerance = period / 3;
+					tolerance = period / 4;
 					tx = i;
 					start--;
-//					serial_println("period: %d", period);
 				} else {
 					if (period - tolerance < diff && diff < period + tolerance) {
 						bit[index++] = 0;
 						tx = i;
-//						serial_print("%d", 0);
-					} else {
-//						serial_println("decode error");
+					} else if (diff < (period - tolerance) / 2 || diff > (period + tolerance) / 2){
+						serial_println("0 error");
 					}
 				}
 
-				diff = i - t0;
+				diff = (i - t0) >= 0 ? (i - t0) : (i - t0 + ADC_DMA_BUF_LEN);
 				freq = sample_freq / diff;
 				if (abs(ctx.freq - freq) > 10)
 					ctx.freq = freq;
 				t0 = i;
 			} else if (FALLING(last_level, level)) {
-				diff = i - tx;
 				if (start == 0) {
+					diff = (i - tx) >= 0 ? (i - tx) : (i - tx + ADC_DMA_BUF_LEN);
 					if (period - tolerance < diff && diff < period + tolerance) {
 						bit[index++] = 1;
 						tx = i;
-//						serial_print("%d", 1);
-					} else {
-//						serial_println("decode error");
+					} else if (diff < (period - tolerance) / 2 || diff > (period + tolerance) / 2){
+						serial_println("1 error");
 					}
 				}
 
@@ -188,15 +186,27 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 			}
 			last_level = level;
 
-			if (i - tx > period*2) {
-				index = 0;
-				start = 8;
-				period = 0;
-				for (j=0; j<index; j++) {
-					serial_print("%d\t", bit[j]);
+			if (i - tx > period*2 || index == 1024) {
+				if (index > 0) {
+					uint8_t byte = 0;
+
+					for (j=0; j<index; j++) {
+						byte |= bit[j] << j%8;
+
+						if (j%8 == 7) {
+							serial_print("%c", byte);
+							byte = 0;
+						}
+					}
+					index = 0;
 				}
-				if (j != 0)
-					serial_print("\r\n");
+
+				/* bus idle, stop */
+				if (i - tx > period*2) {
+					period = 0;
+					start = 8;
+					tx = 0;
+				}
 			}
 		}
 
