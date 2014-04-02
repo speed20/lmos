@@ -9,6 +9,7 @@
 #include "stm32f429i_discovery_lcd.h"
 #include "GUI.h"
 #include "math.h"
+#include "string.h"
 
 #define WIDTH 240
 #define STEP 10
@@ -23,6 +24,9 @@
 #define BIAS 2048
 #define THRESHHOLD 800
 
+#define MAX_BYTE_BUF 128
+#define MAX_BIT_BUF (128*8)
+
 enum {
 	LOW		= 0,
 	HIGH	= 1
@@ -33,6 +37,8 @@ struct draw_ctx {
 	uint16_t nr_point;
 	uint32_t freq;
 	uint32_t duty;
+	uint8_t byte[MAX_BYTE_BUF];
+	uint8_t byte_count;
 };
 
 SemaphoreHandle_t xPulseSemaphore = NULL;
@@ -108,9 +114,8 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	int16_t point[WIDTH];
 	GUI_RECT Rect = {0, 60, WIDTH, 300};
 	struct draw_ctx ctx = {.data = point, .nr_point = WIDTH, .freq = 0, .duty = 0};
-	uint8_t bit[1024], start;
+	uint8_t bit[MAX_BIT_BUF], start;
 	uint16_t index;
-	uint16_t log[100];
 
 	LCD_Init();
 	LTDC_Cmd(ENABLE);
@@ -118,8 +123,6 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	GUI_Init();
 	GUI_SelectLayer(1);
 	GUI_SetBkColor(GUI_TRANSPARENT);
-	GUI_SetColor(GUI_DARKGREEN);
-	GUI_DispStringHCenterAt("Waveform of ADC1", 120, 0);
 	GUI_SetPenSize(1);
 
 	vSemaphoreCreateBinary(xPulseSemaphore);
@@ -153,6 +156,11 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 					tolerance = period / 4;
 					tx = i;
 					start--;
+					/* data start begin, clear data buffer */
+					if (start == 0) {
+						ctx.byte_count = 0;
+						memset(ctx.byte, 0, MAX_BYTE_BUF);
+					}
 				} else {
 					if (period - tolerance < diff && diff < period + tolerance) {
 						bit[index++] = 0;
@@ -186,16 +194,16 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 			}
 			last_level = level;
 
-			if (i - tx > period*2 || index == 1024) {
+			if (i - tx > period*2 || index == MAX_BIT_BUF) {
 				if (index > 0) {
 					uint8_t byte = 0;
 
 					for (j=0; j<index; j++) {
-						byte |= bit[j] << j%8;
+						ctx.byte[ctx.byte_count] |= bit[j] << j%8;
 
 						if (j%8 == 7) {
-							serial_print("%c", byte);
-							byte = 0;
+//							serial_print("%c", ctx.byte[ctx.byte_count]);
+							ctx.byte_count++;
 						}
 					}
 					index = 0;
@@ -408,19 +416,28 @@ void draw_waveform(void *pdata)
 
 	GUI_MULTIBUF_Begin();
 	GUI_Clear();
+
+	GUI_SetColor(GUI_ORANGE);
+	GUI_DrawHLine(V_OFFSET - V_RANGE - 5, 0, WIDTH);
+	GUI_DrawHLine(V_OFFSET + V_RANGE + 5, 0, WIDTH);
+	if (ctx->byte_count > 0)
+		GUI_DispStringAt(ctx->byte, 0, 25);
+
+	GUI_SetLineStyle(GUI_LS_DOT);
+	GUI_DrawLine(0, V_OFFSET, WIDTH, V_OFFSET);
+
 	GUI_SetColor(GUI_DARKGREEN);
 	GUI_DrawGraph(ctx->data, ctx->nr_point, 0, V_OFFSET);
 
-	GUI_SetLineStyle(GUI_LS_DOT);
-	GUI_DrawHLine(V_OFFSET - V_RANGE - 5, 0, WIDTH);
-	GUI_DrawLine(0, V_OFFSET, WIDTH, V_OFFSET);
-	GUI_DrawHLine(V_OFFSET + V_RANGE + 5, 0, WIDTH);
-
 	GUI_SetTextMode(GUI_TM_TRANS);
+	GUI_SetFont(GUI_FONT_8X8);
 	GUI_DispStringHCenterAt("Waveform of PB0", 120, 10);
+
+	GUI_SetFont(GUI_FONT_6X8);
 	GUI_DispStringAt(buf, 0, 280);
+
 	GUI_SetColor(GUI_RED);
-	GUI_DispStringAt("Tips: use (+/-) change sample rate", 0, 300);
+	GUI_DispStringAt("Tips: use (+/-) change sample rate", 0, 310);
 	GUI_MULTIBUF_End();
 }
 
