@@ -29,6 +29,11 @@
 #include "usb_bsp.h"
 #include "usb_conf.h"
 #include "global_includes.h"
+#include "usbd_desc.h"
+#ifdef CONFIG_Class_hid
+#include "usbd_hid_core.h"
+#endif
+#include "usbd_usr.h"
 
 /** @addtogroup USBH_USER
 * @{
@@ -69,6 +74,8 @@
   * @}
   */ 
 uint16_t tmprg=0;
+//__ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
+USB_OTG_CORE_HANDLE  USB_OTG_dev;
 
 
 /** @defgroup USB_BSP_Private_Macros
@@ -115,42 +122,30 @@ static void USB_OTG_BSP_TimeInit ( void );
 
 void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *pdev)
 {
-	GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitTypeDef GPIO_InitStructure;   
 
+  /* Configuration for USB OTG HS used in FS mode with EMBEDDED PHY */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB , ENABLE);
+  
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_14 | GPIO_Pin_15;
+  
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+  
+  GPIO_PinAFConfig(GPIOB,GPIO_PinSource14,GPIO_AF_OTG2_FS) ;
+  GPIO_PinAFConfig(GPIOB,GPIO_PinSource15,GPIO_AF_OTG2_FS) ;
+  
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+   
+  RCC_AHB1PeriphClockCmd( RCC_AHB1Periph_OTG_HS, ENABLE);
 
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14 | // PB14 OTG_HS_DM
-								  GPIO_Pin_15;  // PB15 OTG_HS_DP
-
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	GPIO_PinAFConfig(GPIOB,GPIO_PinSource14,GPIO_AF_OTG2_FS); // PB14 OTG_FS_DM
-	GPIO_PinAFConfig(GPIOB,GPIO_PinSource15,GPIO_AF_OTG2_FS); // PB15 OTG_FS_DP
-
-	/* Configure VBUS Pin */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13; // PB13 VBUS_FS (GPIO)
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	/* Configure ID pin */
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_12; // PB12 OTG_FS_ID
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_PinAFConfig(GPIOB,GPIO_PinSource12,GPIO_AF_OTG2_FS); // PB12 OTG_HS_ID  12
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_OTG_HS, ENABLE);
+  USB_OTG_BSP_TimeInit();
 }
 #if 0
 {
@@ -192,11 +187,12 @@ void USB_OTG_BSP_EnableInterrupt(USB_OTG_CORE_HANDLE *pdev)
   NVIC_InitTypeDef NVIC_InitStructure;
 
   NVIC_InitStructure.NVIC_IRQChannel = OTG_HS_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 
+#if 0
   NVIC_InitStructure.NVIC_IRQChannel = OTG_HS_EP1_OUT_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
@@ -208,7 +204,7 @@ void USB_OTG_BSP_EnableInterrupt(USB_OTG_CORE_HANDLE *pdev)
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
-
+#endif
 }
 
 /**
@@ -423,27 +419,30 @@ static void BSP_SetTime(uint8_t unit)
 
 #endif
 
-/**
-* @}
-*/ 
-static uint32_t USBConfig(void)
+uint32_t USBConfig(void)
 {
   USBD_Init(&USB_OTG_dev,
             USB_OTG_HS_CORE_ID,
             &USR_desc,
             &USBD_HID_cb,
-//          &USBD_CDC_cb,
+/*
+#ifdef CONFIG_Class_hid
+            &USBD_HID_cb,
+#else
+			&USBD_CDC_cb,
+#endif
+*/
             &USR_cb);
 
   return 0;
 }
 
-/**
-* @}
-*/ 
+void OTG_HS_IRQHandler(void)
+{
+    USBD_OTG_ISR_Handler(&USB_OTG_dev);
+}
 
-/**
-* @}
-*/
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+void OTG_FS_IRQHandler(void)
+{
+    USBD_OTG_ISR_Handler (&USB_OTG_dev);
+}

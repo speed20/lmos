@@ -82,18 +82,6 @@ static portTASK_FUNCTION(vMPU6050TestTask, pvParameters)
 			//serial_print("%d %d %d\r\n", m_calAccel[0], m_calAccel[1], m_calAccel[2]);
 		}
 	}
-
-#if 0
-	t1 = TIM_GetCounter(TIM2);
-	for (i=0; i<1000000; i++) {
-		USBD_HID_SendReport(&USB_OTG_dev, &report, sizeof(report));
-	}
-	t2 = TIM_GetCounter(TIM2);
-	dt = t2 - t1 >= 0 ? t2 - t1 : t2 - t1 + 0xffff;
-	serial_print("usb speed: %d %d Mbytes/s\r\n", dt, sizeof(report) * 100000 / dt);
-	//serial_print("usb speed: %d %d kbytes/s\r\n", dt, sizeof(report) * 10000 * 1000 * 100 / dt);
-	while (1);
-#endif
 }
 
 static int mpu6050_config()

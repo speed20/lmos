@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    usbd_hid_core.c
   * @author  MCD Application Team
-  * @version V1.0.0
-  * @date    22-July-2011
+  * @version V1.1.0
+  * @date    19-March-2012
   * @brief   This file provides the HID core functions.
   *
   * @verbatim
@@ -29,14 +29,20 @@
   ******************************************************************************
   * @attention
   *
-  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
-  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
-  * TIME. AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY
-  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
-  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
-  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
+  * <h2><center>&copy; COPYRIGHT 2012 STMicroelectronics</center></h2>
   *
-  * <h2><center>&copy; COPYRIGHT 2011 STMicroelectronics</center></h2>
+  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
+  * You may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at:
+  *
+  *        http://www.st.com/software_license_agreement_liberty_v2
+  *
+  * Unless required by applicable law or agreed to in writing, software 
+  * distributed under the License is distributed on an "AS IS" BASIS, 
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  *
   ******************************************************************************
   */ 
 
@@ -176,7 +182,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   0x01,         /*bNumEndpoints*/
   0x03,         /*bInterfaceClass: HID*/
   0x01,         /*bInterfaceSubClass : 1=BOOT, 0=no boot*/
-  0x00,         /*nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse*/
+  0x02,         /*nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse*/
   0,            /*iInterface: Index of string descriptor*/
   /******************** Descriptor of Joystick Mouse HID ********************/
   /* 18 */
@@ -187,7 +193,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   0x00,         /*bCountryCode: Hardware target country*/
   0x01,         /*bNumDescriptors: Number of HID class descriptors to follow*/
   0x22,         /*bDescriptorType*/
-  HID_ADC_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
+  HID_MOUSE_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
   0x00,
   /******************** Descriptor of Mouse endpoint ********************/
   /* 27 */
@@ -201,6 +207,27 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   0x0A,          /*bInterval: Polling Interval (10 ms)*/
   /* 34 */
 } ;
+
+#ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
+  #if defined ( __ICCARM__ ) /*!< IAR Compiler */
+    #pragma data_alignment=4   
+  #endif
+/* USB HID device Configuration Descriptor */
+__ALIGN_BEGIN static uint8_t USBD_HID_Desc[USB_HID_DESC_SIZ] __ALIGN_END=
+{
+  /* 18 */
+  0x09,         /*bLength: HID Descriptor size*/
+  HID_DESCRIPTOR_TYPE, /*bDescriptorType: HID*/
+  0x11,         /*bcdHID: HID Class Spec release number*/
+  0x01,
+  0x00,         /*bCountryCode: Hardware target country*/
+  0x01,         /*bNumDescriptors: Number of HID class descriptors to follow*/
+  0x22,         /*bDescriptorType*/
+  HID_MOUSE_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
+  0x00,
+};
+#endif 
+
 
 #ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
   #if defined ( __ICCARM__ ) /*!< IAR Compiler */
@@ -257,118 +284,6 @@ __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE] __
   0x01,   0xc0
 }; 
 
-__ALIGN_BEGIN static uint8_t HID_JOYSTICK_ReportDesc[HID_JOYSTICK_REPORT_DESC_SIZE] __ALIGN_END =
-{
-    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
-    0x09, 0x04,                    // USAGE (Joystick)
-    0xa1, 0x01,                    // COLLECTION (Application)
-    0x09, 0x01,                    //   USAGE (Pointer)
-    0xa1, 0x00,                    //   COLLECTION (Physical)
-    0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
-    0x09, 0x30,                    //     USAGE (X)
-    0x09, 0x31,                    //     USAGE (Y)
-    0x09, 0x32,                    //     USAGE (Z)
-    0x09, 0x33,                    //     USAGE (Rx)
-    0x09, 0x34,                    //     USAGE (Ry)
-    0x09, 0x35,                    //     USAGE (Rz)
-    0x09, 0x36,                    //     USAGE (Slider)
-    0x09, 0x37,                    //     USAGE (Dial)
-    0x15, 0x81,                    //     LOGICAL_MINIMUM (-127)
-    0x25, 0x7f,                    //     LOGICAL_MAXIMUM (127)
-    0x75, 0x08,                    //     REPORT_SIZE (8)
-    0x95, 0x08,                    //     REPORT_COUNT (8)
-    0x81, 0x82,                    //     INPUT (Data,Var,Abs,Vol)
-    0xc0,                          //   END_COLLECTION
-    0x05, 0x09,                    //   USAGE_PAGE (Button)
-    0x19, 0x01,                    //   USAGE_MINIMUM (Button 1)
-    0x19, 0x03,                    //   USAGE_MINIMUM (Button 3)
-    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
-    0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
-    0x75, 0x01,                    //   REPORT_SIZE (1)
-    0x95, 0x03,                    //   REPORT_COUNT (3)
-    0x81, 0x00,                    //   INPUT (Data,Ary,Abs)
-    0xc0                           // END_COLLECTION
-};
-
-__ALIGN_BEGIN static uint8_t HID_MPU6050_ReportDesc[HID_MPU6050_REPORT_DESC_SIZE] __ALIGN_END =
-{
-    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
-    0x09, 0x04,                    // USAGE (Joystick)
-    0xa1, 0x01,                    // COLLECTION (Application)
-    0x09, 0x01,                    //   USAGE (Pointer)
-    0xa1, 0x00,                    //   COLLECTION (Physical)
-    0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
-    0x09, 0x30,                    //     USAGE (X)
-    0x09, 0x31,                    //     USAGE (Y)
-    0x09, 0x32,                    //     USAGE (Z)
-    0x09, 0x33,                    //     USAGE (Rx)
-    0x09, 0x34,                    //     USAGE (Ry)
-    0x09, 0x35,                    //     USAGE (Rz)
-    0x09, 0x36,                    //     USAGE (Slider)
-    0x09, 0x37,                    //     USAGE (Dial)
-    0x16, 0x00, 0x80,              //     LOGICAL_MINIMUM (-32768)
-    0x26, 0xff, 0x7f,              //     LOGICAL_MAXIMUM (32767)
-    0x75, 0x10,                    //     REPORT_SIZE (16)
-    0x95, 0x08,                    //     REPORT_COUNT (8)
-    0x81, 0x82,                    //     INPUT (Data,Var,Abs,Vol)
-    0xc0,                          //   END_COLLECTION
-    0x05, 0x09,                    //   USAGE_PAGE (Button)
-    0x19, 0x01,                    //   USAGE_MINIMUM (Button 1)
-    0x19, 0x03,                    //   USAGE_MINIMUM (Button 3)
-    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
-    0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
-    0x75, 0x01,                    //   REPORT_SIZE (1)
-    0x95, 0x03,                    //   REPORT_COUNT (3)
-    0x81, 0x02,                    //   INPUT (Data,Ary,Abs)
-    0xc0                           // END_COLLECTION
-};
-
-__ALIGN_BEGIN static uint8_t HID_MPU6050_32_ReportDesc[HID_MPU6050_32_REPORT_DESC_SIZE] __ALIGN_END =
-{
-    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
-    0x09, 0x04,                    // USAGE (Joystick)
-    0xa1, 0x01,                    // COLLECTION (Application)
-    0x09, 0x01,                    //   USAGE (Pointer)
-    0xa1, 0x00,                    //   COLLECTION (Physical)
-    0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
-    0x09, 0x30,                    //     USAGE (X)
-    0x09, 0x31,                    //     USAGE (Y)
-    0x09, 0x32,                    //     USAGE (Z)
-    0x17, 0x02, 0x00, 0x00, 0x80,  //     LOGICAL_MINIMUM (-2147483646)
-    0x27, 0xff, 0xff, 0xff, 0x7f,  //     LOGICAL_MAXIMUM (2147483647)
-    0x75, 0x20,                    //     REPORT_SIZE (32)
-    0x95, 0x03,                    //     REPORT_COUNT (3)
-    0x81, 0x82,                    //     INPUT (Data,Var,Abs,Vol)
-    0xc0,                          //   END_COLLECTION
-    0x05, 0x09,                    //   USAGE_PAGE (Button)
-    0x19, 0x01,                    //   USAGE_MINIMUM (Button 1)
-    0x19, 0x03,                    //   USAGE_MINIMUM (Button 3)
-    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
-    0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
-    0x75, 0x01,                    //   REPORT_SIZE (1)
-    0x95, 0x03,                    //   REPORT_COUNT (3)
-    0x81, 0x00,                    //   INPUT (Data,Ary,Abs)
-    0xc0                           // END_COLLECTION
-};
-
-__ALIGN_BEGIN static uint8_t HID_ADC_ReportDesc[HID_ADC_REPORT_DESC_SIZE] __ALIGN_END = {
-    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
-    0x09, 0x00,                    // USAGE (Undefined)
-    0xa1, 0x01,                    // COLLECTION (Application)
-    0x09, 0x00,                    //   USAGE (Pointer)
-    0xa1, 0x00,                    //   COLLECTION (Physical)
-    0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
-    0x09, 0x30,                    //     USAGE (X)
-    0x09, 0x31,                    //     USAGE (Y)
-    0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
-    0x27, 0xff, 0xff, 0x00, 0x00,  //     LOGICAL_MAXIMUM (65535)
-    0x75, 0x10,                    //     REPORT_SIZE (16)
-    0x95, 0x02,                    //     REPORT_COUNT (2)
-    0x81, 0x02,                    //     INPUT (Data,Var,Abs,Vol)
-    0xc0,                          //	END_COLLECTION
-    0xc0                           // END_COLLECTION
-};
-
 /**
   * @}
   */ 
@@ -387,7 +302,7 @@ __ALIGN_BEGIN static uint8_t HID_ADC_ReportDesc[HID_ADC_REPORT_DESC_SIZE] __ALIG
 static uint8_t  USBD_HID_Init (void  *pdev, 
                                uint8_t cfgidx)
 {
-  (void)cfgidx;
+  
   /* Open EP IN */
   DCD_EP_Open(pdev,
               HID_IN_EP,
@@ -413,7 +328,6 @@ static uint8_t  USBD_HID_Init (void  *pdev,
 static uint8_t  USBD_HID_DeInit (void  *pdev, 
                                  uint8_t cfgidx)
 {
-  (void)cfgidx;
   /* Close HID EPs */
   DCD_EP_Close (pdev , HID_IN_EP);
   DCD_EP_Close (pdev , HID_OUT_EP);
@@ -474,17 +388,17 @@ static uint8_t  USBD_HID_Setup (void  *pdev,
     case USB_REQ_GET_DESCRIPTOR: 
       if( req->wValue >> 8 == HID_REPORT_DESC)
       {
-        len = MIN(HID_ADC_REPORT_DESC_SIZE , req->wLength);
-        pbuf = HID_ADC_ReportDesc;
+        len = MIN(HID_MOUSE_REPORT_DESC_SIZE , req->wLength);
+        pbuf = HID_MOUSE_ReportDesc;
       }
       else if( req->wValue >> 8 == HID_DESCRIPTOR_TYPE)
       {
         
-//#ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
-//        pbuf = USBD_HID_Desc;   
-//#else
+#ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
+        pbuf = USBD_HID_Desc;   
+#else
         pbuf = USBD_HID_CfgDesc + 0x12;
-//#endif 
+#endif 
         len = MIN(USB_HID_DESC_SIZ , req->wLength);
       }
       
@@ -535,7 +449,6 @@ uint8_t USBD_HID_SendReport     (USB_OTG_CORE_HANDLE  *pdev,
   */
 static uint8_t  *USBD_HID_GetCfgDesc (uint8_t speed, uint16_t *length)
 {
-  (void)speed;
   *length = sizeof (USBD_HID_CfgDesc);
   return USBD_HID_CfgDesc;
 }
@@ -550,7 +463,7 @@ static uint8_t  *USBD_HID_GetCfgDesc (uint8_t speed, uint16_t *length)
 static uint8_t  USBD_HID_DataIn (void  *pdev, 
                               uint8_t epnum)
 {
-  (void)epnum; 
+  
   /* Ensure that the FIFO is empty before a new transfer, this condition could 
   be caused by  a new transfer before the end of the previous transfer */
   DCD_EP_Flush(pdev, HID_IN_EP);
@@ -571,4 +484,4 @@ static uint8_t  USBD_HID_DataIn (void  *pdev,
   * @}
   */ 
 
-/******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

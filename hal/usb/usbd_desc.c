@@ -232,16 +232,16 @@ uint8_t *  USBD_USR_LangIDStrDescriptor( uint8_t speed , uint16_t *length)
 */
 uint8_t *  USBD_USR_ProductStrDescriptor( uint8_t speed , uint16_t *length)
 {
- 
-  
-  if(speed == 0)
-  {   
-    USBD_GetString (USBD_PRODUCT_HS_STRING, USBD_StrDesc, length);
-  }
-  else
-  {
-    USBD_GetString (USBD_PRODUCT_FS_STRING, USBD_StrDesc, length);    
-  }
+	switch (speed) {
+		case USB_SPEED_LOW:
+		case USB_SPEED_FULL:
+			USBD_GetString (USBD_PRODUCT_FS_STRING, USBD_StrDesc, length);    
+			break;
+		case USB_SPEED_UNKNOWN:
+		case USB_SPEED_HIGH:
+			USBD_GetString (USBD_PRODUCT_HS_STRING, USBD_StrDesc, length);
+			break;
+	}
   return USBD_StrDesc;
 }
 

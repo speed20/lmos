@@ -26,6 +26,7 @@ tmp_objs  = main.o \
 		task_flash.o \
 		GUIConf.o \
 		LCDConf.o \
+		usb_bsp.o \
 		GUI_X.o
 
 #		task_asr.o \

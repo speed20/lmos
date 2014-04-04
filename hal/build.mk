@@ -14,7 +14,7 @@ CONFIG_HAL_i2c=n
 CONFIG_HAL_serial=y
 CONFIG_HAL_spi=n
 CONFIG_HAL_time=y
-CONFIG_HAL_usb=n
+CONFIG_HAL_usb=y
 
 ifeq ($(CONFIG_HAL_i2c), y)
 VPATH += $(hal_local_path)/i2c
@@ -38,7 +38,11 @@ endif
 
 ifeq ($(CONFIG_HAL_usb), y)
 VPATH += $(hal_local_path)/usb
-hal_src += $(call all_c_files,$(hal_local_path)/usb)
+ifeq ($(CONFIG_Class_cdc), y)
+hal_src += usbd_cdc_vcp.c
+endif
+hal_src += usbd_desc.c
+hal_src += usbd_usr.c
 endif
 
 hal_objs := $(addprefix $(OUT_DIR)/,$(patsubst %.c,%.o,$(hal_src)))

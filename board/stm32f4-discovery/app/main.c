@@ -16,7 +16,8 @@
 #include <display/oled.h>
 #include "delay.h"
 #include "display.h"
-#include "arm_math.h"
+//#include "arm_math.h"
+#include "usb_core.h"
 
 /* Priorities for the demo application tasks. */
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
@@ -42,9 +43,11 @@ int main(void)
 {
 	prvSetupHardware();
 
-	//vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
-	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
-	vStartPulseTask(mainFLASH_TASK_PRIORITY);
+	USBConfig();
+
+	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
+	//vStartCtrlTask(mainBLOCK_Q_PRIORITY);
+	//vStartPulseTask(mainFLASH_TASK_PRIORITY);
 	//vStartMPU6050Tasks(mainFLOP_TASK_PRIORITY);
 	//vStartIRTestTask(mainIR_TASK_PRIORITY);
 	//vStartASRTestTask(mainIR_TASK_PRIORITY);

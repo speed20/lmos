@@ -59,18 +59,18 @@ CONFIG_stm32f4xx_hash_sha1=n
 CONFIG_stm32f4xx_rtc=n
 CONFIG_stm32f4xx_cryp_des=n
 
-CONFIG_STM32_USB_Device_Library=n
+CONFIG_STM32_USB_Device_Library=y
 CONFIG_Core=y
 CONFIG_Class_audio=n
-CONFIG_Class_cdc=y
+CONFIG_Class_cdc=n
 CONFIG_Class_msc=n
 CONFIG_Class_hid=y
 CONFIG_Class_dfu=n
 
-CONFIG_STM32_USB_OTG_Driver=n
+CONFIG_STM32_USB_OTG_Driver=y
 CONFIG_usb_dcd=y
 CONFIG_usb_hdc=n
-CONFIG_usb_otg=y
+CONFIG_usb_otg=n
 
 define all_c_files
 $(notdir $(wildcard $1/*.c))
@@ -104,10 +104,13 @@ objs += $(foreach i,$(opt1),$(if $(filter y,$(CONFIG_Class_$(i))),\
 
 VPATH += $(foreach i,$(opt1),$(if $(filter y,$(CONFIG_Class_$(i))),$(tmp_path)/Class/$i/src))
 CFLAGS += $(foreach i,$(opt1),$(if $(filter y,$(CONFIG_Class_$(i))),$(call all_header_dir,$(tmp_path)/Class/$i)))
+CFLAGS += $(foreach i,$(opt1),$(if $(filter y,$(CONFIG_Class_$(i))),-DCONFIG_Class_$(i)))
+CFLAGS += -DUSE_DEVICE_MODE
 endif
 
 ifeq ($(CONFIG_STM32_USB_OTG_Driver), y)
 objs += $(OUT_DIR)/usb_core.o
+CFLAGS += -DUSE_OTG_MODE
 ifeq ($(CONFIG_usb_hcd), y)
 objs += $(addprefix $(OUT_DIR)/,$(patsubst %.c,%.o,$(notdir $(wildcard lib/STM32_USB_OTG_Driver/src/usb_hcd*.c))))
 endif
