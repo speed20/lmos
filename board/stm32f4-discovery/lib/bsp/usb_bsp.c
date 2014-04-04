@@ -30,8 +30,10 @@
 #include "usb_conf.h"
 #include "global_includes.h"
 #include "usbd_desc.h"
-#ifdef CONFIG_Class_hid
+#if	defined(CONFIG_Class_hid)
 #include "usbd_hid_core.h"
+#elif defined(CONFIG_Class_cdc)
+#include "usbd_cdc_core.h"
 #endif
 #include "usbd_usr.h"
 
@@ -424,14 +426,13 @@ uint32_t USBConfig(void)
   USBD_Init(&USB_OTG_dev,
             USB_OTG_HS_CORE_ID,
             &USR_desc,
+#if	defined(CONFIG_Class_hid)
             &USBD_HID_cb,
-/*
-#ifdef CONFIG_Class_hid
-            &USBD_HID_cb,
-#else
+#elif defined(CONFIG_Class_cdc)
 			&USBD_CDC_cb,
+#else
+#error  "CONFIG_Class_hid or CONFIG_Class_cdc should be defined"
 #endif
-*/
             &USR_cb);
 
   return 0;

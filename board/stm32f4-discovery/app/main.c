@@ -38,11 +38,11 @@
 /*-----------------------------------------------------------*/
 static void prvSetupHardware( void );
 static void prvCheckTimerCallback( TimeOut_t xTimer );
+extern USB_OTG_CORE_HANDLE  USB_OTG_dev;
 
 int main(void)
 {
 	prvSetupHardware();
-
 	USBConfig();
 
 	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);

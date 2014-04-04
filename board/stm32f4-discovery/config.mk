@@ -62,9 +62,9 @@ CONFIG_stm32f4xx_cryp_des=n
 CONFIG_STM32_USB_Device_Library=y
 CONFIG_Core=y
 CONFIG_Class_audio=n
-CONFIG_Class_cdc=n
+CONFIG_Class_cdc=y
 CONFIG_Class_msc=n
-CONFIG_Class_hid=y
+CONFIG_Class_hid=n
 CONFIG_Class_dfu=n
 
 CONFIG_STM32_USB_OTG_Driver=y

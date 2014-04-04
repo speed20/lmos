@@ -41,7 +41,6 @@
   * @{
   */ 
 
-
 /** @defgroup usbd_cdc_Exported_Defines
   * @{
   */ 
