@@ -24,7 +24,7 @@ typedef struct {
 } i2c_msg;
 
 void i2c_init(uint8_t ch, uint32_t clock);
-uint8_t i2c_xfer(i2c_msg *msg);
+int8_t i2c_xfer(i2c_msg *msg);
 i2c_msg *g_msg;
 volatile uint8_t i2c_wait_flag;
 
@@ -62,8 +62,36 @@ void i2c_init(uint8_t ch, uint32_t clock)
 			flag = 1;
 			break;
 		case 1:
+			break;
 		case 2:
-			/* not implement */
+			/* Enable the i2c bus peripheral clock */
+			RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C3, ENABLE);
+
+			RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC, ENABLE);
+			RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+			/* i2c_bus SCL and SDA pins configuration -------------------------------------*/
+			GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+			GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+			GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+			GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+			GPIO_Init(GPIOA, &GPIO_InitStructure);    
+
+			GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+			GPIO_Init(GPIOC, &GPIO_InitStructure);    
+
+			GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_I2C3);
+			GPIO_PinAFConfig(GPIOC, GPIO_PinSource9, GPIO_AF_I2C3);
+
+			/* i2c bus peripheral configuration */
+			I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
+			I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
+			I2C_InitStructure.I2C_OwnAddress1 = 0x0;
+			I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+			I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+			I2C_InitStructure.I2C_ClockSpeed = clock;
+			flag = 1;
 			break;
 		default:
 			return ;
@@ -76,7 +104,7 @@ void i2c_init(uint8_t ch, uint32_t clock)
 	}
 }
 
-uint8_t i2c_write_byte(i2c_dev *dev, uint8_t reg, uint8_t value)
+int8_t i2c_write_byte(i2c_dev *dev, uint8_t reg, uint8_t value)
 {
 	uint8_t tx_buf[I2C_MAX_BUF_LEN] = {reg, value};
 
@@ -84,7 +112,7 @@ uint8_t i2c_write_byte(i2c_dev *dev, uint8_t reg, uint8_t value)
 	return i2c_xfer(&msg);
 }
 
-uint8_t i2c_write_bytes(i2c_dev *dev, uint8_t reg, uint32_t len, uint8_t *data)
+int8_t i2c_write_bytes(i2c_dev *dev, uint8_t reg, uint32_t len, uint8_t *data)
 {
 	uint8_t tx_buf[I2C_MAX_BUF_LEN];
 	uint8_t i;
@@ -111,7 +139,7 @@ uint8_t i2c_read_byte(i2c_dev *dev, uint8_t reg)
 	return rx_buf[0];
 }
 
-uint8_t i2c_read_bytes(i2c_dev *dev, uint8_t reg, uint32_t len, uint8_t *data)
+int8_t i2c_read_bytes(i2c_dev *dev, uint8_t reg, uint32_t len, uint8_t *data)
 {
 	uint8_t tx_buf[I2C_MAX_BUF_LEN];
 	
@@ -121,7 +149,7 @@ uint8_t i2c_read_bytes(i2c_dev *dev, uint8_t reg, uint32_t len, uint8_t *data)
 	return i2c_xfer(&msg);
 }
 
-uint8_t i2c_write_bit(i2c_dev *dev, uint8_t reg, uint8_t bit, uint8_t val)
+int8_t i2c_write_bit(i2c_dev *dev, uint8_t reg, uint8_t bit, uint8_t val)
 {
 	uint8_t byte, mask;
 
@@ -130,12 +158,12 @@ uint8_t i2c_write_bit(i2c_dev *dev, uint8_t reg, uint8_t bit, uint8_t val)
 	byte = i2c_read_byte(dev, reg) & mask;
 	byte |= (val << bit);
 
-//	serial_print("bit: %d mask: 0x%02x value: 0x%02x 0x%02x\r\n", bit, mask, val, byte);
+	//serial_print("bit: %d mask: 0x%02x value: 0x%02x 0x%02x\r\n", bit, mask, val, byte);
 
 	return i2c_write_byte(dev, reg, byte);
 }
 
-uint8_t i2c_write_bits(i2c_dev *dev, uint8_t reg, uint8_t bit, uint8_t len, uint8_t val)
+int8_t i2c_write_bits(i2c_dev *dev, uint8_t reg, uint8_t bit, uint8_t len, uint8_t val)
 {
 	uint8_t byte, mask;
 
@@ -182,16 +210,19 @@ uint8_t i2c_read_bits(i2c_dev *dev, uint8_t reg, uint8_t bit, uint8_t len)
 }
 
 
-uint8_t i2c_xfer(i2c_msg *msg)
+int8_t i2c_xfer(i2c_msg *msg)
 {
 	uint32_t timeout;
+	int8_t status = 0;
 
 	portDISABLE_INTERRUPTS();
 
 	timeout = 10000;
 	while(I2C_GetFlagStatus(i2c_bus[msg->dev->bus_num], I2C_FLAG_BUSY)) {
-		if((timeout--) == 0)
-			return -1;
+		if((timeout--) == 0) {
+			status = -1;
+			goto error;
+		}
 	}
 
 	if (msg->tx_len > 0) {
@@ -201,8 +232,10 @@ uint8_t i2c_xfer(i2c_msg *msg)
 		/* Test on EV5 and clear it */
 		timeout = 10000;
 		while (!I2C_CheckEvent(i2c_bus[msg->dev->bus_num], I2C_EVENT_MASTER_MODE_SELECT)) {
-			if((timeout--) == 0)
-				return -2;
+			if((timeout--) == 0) {
+				status = -2;
+				goto error;
+			}
 		}
 
 		/* Transmit the slave address and enable writing operation */
@@ -211,8 +244,10 @@ uint8_t i2c_xfer(i2c_msg *msg)
 		/* Test on EV6 and clear it */
 		timeout = 10000;
 		while (!I2C_CheckEvent(i2c_bus[msg->dev->bus_num], I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
-			if((timeout--) == 0)
-				return -3;
+			if((timeout--) == 0) {
+				status = -3;
+				goto error;
+			}
 		}
 
 		while (msg->tx_idx < msg->tx_len) {
@@ -222,8 +257,10 @@ uint8_t i2c_xfer(i2c_msg *msg)
 			/* Test on EV8 and clear it */
 			timeout = 10000;
 			while (!I2C_CheckEvent(i2c_bus[msg->dev->bus_num], I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
-				if((timeout--) == 0)
-					return -4;
+				if((timeout--) == 0) {
+					status = -4;
+					goto error;
+				}
 			}
 		}
 	}
@@ -235,8 +272,10 @@ uint8_t i2c_xfer(i2c_msg *msg)
 		/*!< Test on EV5 and clear it (cleared by reading SR1 then writing to DR) */
 		timeout = 10000;
 		while(!I2C_CheckEvent(i2c_bus[msg->dev->bus_num], I2C_EVENT_MASTER_MODE_SELECT)) {
-			if((timeout--) == 0)
-				return -5;
+			if((timeout--) == 0) {
+				status = -5;
+				goto error;
+			}
 		} 
 
 		/*!< Send Codec address for read */
@@ -245,8 +284,10 @@ uint8_t i2c_xfer(i2c_msg *msg)
 		/* Wait on ADDR flag to be set (ADDR is still not cleared at this level */
 		timeout = 10000;
 		while (!I2C_CheckEvent(i2c_bus[msg->dev->bus_num], I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
-			if((timeout--) == 0)
-				return -6;
+			if((timeout--) == 0) {
+				status = -6;
+				goto error;
+			}
 		}
 
 		while (msg->rx_idx < msg->rx_len) {
@@ -261,8 +302,10 @@ uint8_t i2c_xfer(i2c_msg *msg)
 			/* Wait for the byte to be received */
 			timeout = 10000;
 			while (!I2C_CheckEvent(i2c_bus[msg->dev->bus_num], I2C_EVENT_MASTER_BYTE_RECEIVED)) {
-				if((timeout--) == 0)
-					return -7;
+				if((timeout--) == 0) {
+					status = -7;
+					goto error;
+				}
 			}
 
 			/*!< Read the byte received from the Codec */
@@ -276,9 +319,9 @@ uint8_t i2c_xfer(i2c_msg *msg)
 		I2C_GenerateSTOP(i2c_bus[msg->dev->bus_num], ENABLE);  
 	}
 
-	portDISABLE_INTERRUPTS();
-
-	return 0;
+error:
+	portENABLE_INTERRUPTS();
+	return status;
 }
 
 

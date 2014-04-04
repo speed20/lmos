@@ -12,11 +12,11 @@ endef
 CONFIG_asr=n
 CONFIG_timer=y
 CONFIG_wireless=n
-CONFIG_hmc588xx=n
+CONFIG_hmc588xx=y
 CONFIG_misc=n
 CONFIG_led=y
 CONFIG_display=n
-CONFIG_invense=n
+CONFIG_invense=y
 
 ifeq ($(CONFIG_asr), y)
 VPATH += $(module_local_path)/asr

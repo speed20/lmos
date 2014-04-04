@@ -13,13 +13,13 @@
 
 #define STACK_SIZE 1024
 
-extern USB_OTG_CORE_HANDLE  USB_OTG_dev;
-extern SemaphoreHandle_t mpu6050Semaphore;
-static portTASK_FUNCTION_PROTO(vMPU6050TestTask, pvParameters);
+SemaphoreHandle_t mpu6050Semaphore;
+static portTASK_FUNCTION_PROTO(vMPUTask, pvParameters);
+static int mpu6050_config();
 
-void vStartMPU6050Tasks(unsigned portBASE_TYPE uxPriority)
+void vStartMPUTasks(unsigned portBASE_TYPE uxPriority)
 {
-	xTaskCreate(vMPU6050TestTask, (signed char *)"imu", STACK_SIZE, NULL, uxPriority, (TaskHandle_t *)NULL);
+	xTaskCreate(vMPUTask, (signed char *)"imu", STACK_SIZE, NULL, uxPriority, (TaskHandle_t *)NULL);
 }
 
 #pragma pack(1) 
@@ -29,57 +29,32 @@ struct mpu6050_report_t {
 };
 
 #define SCALE 2000
-static portTASK_FUNCTION(vMPU6050TestTask, pvParameters)
+static portTASK_FUNCTION(vMPUTask, pvParameters)
 {
-	TickType_t xSendRate, xLastSendTime;
-	xSendRate = 2;
-	int16_t ax, ay, az, rx, ry, rz, hx, hy, hz;
 	int32_t roll, yaw, pitch;
 	unsigned char buf[128];
-	struct mpu6050_report_t report;
-	uint32_t t1, t2, dt, i;
-	uint16_t packetSize, fifoCount;
-	uint8_t mpuIntStatus, fifoBuffer[64];
-	Quaternion q;
-	VectorFloat gravity;
-	VectorInt16 raw, aa;
-	float ypr[3];
+	uint32_t size;
 	mpudata_t mpu;
-	uint8_t empty[16]= {' '};
 
-	memset(&report, 0, sizeof(report));
 	memset(&mpu, 0, sizeof(mpu));
-
-	oled_clear();
+	mpu6050_config();
 
 	xSemaphoreTake(mpu6050Semaphore, 0);
 
-	if (mpulib_init(50, 10) < 0) {
-		for(;;);
+	if (mpulib_init(20, 10) < 0) {
+		for (;;);
 	}
 
 //	set_calibration(0);
 //	set_calibration(1);
 
-	uint32_t size;
-	for (;;)
-	{
+	for (;;) {
 		xSemaphoreTake(mpu6050Semaphore, portMAX_DELAY);
 		if (mpulib_read(&mpu) == 0) {
-			//sprintf(buf, "%d,%d,%d\r\n", mpu.rawAccel[0], mpu.rawAccel[1], mpu.rawAccel[2]);
-			size = sprintf(buf, "%d,%d,%d\r\n", (int32_t)((mpu.fusedEuler[VEC3_X]) * RAD_TO_DEGREE), \
+			size = sprintf(buf, "%d,%d,%d", (int32_t)((mpu.fusedEuler[VEC3_X]) * RAD_TO_DEGREE), \
 					(int32_t)((mpu.fusedEuler[VEC3_Y]) * RAD_TO_DEGREE), \
 					(int32_t)((mpu.fusedEuler[VEC3_Z]) * RAD_TO_DEGREE));
-
-//			sprintf(buf, "%d,%d,%d\r\n", mpu.rawMag[0], mpu.rawMag[1], mpu.rawMag[2]);
-//			VCP_send_str(buf);
-			vParTestToggleLED(LED3);
-			Bt_Send(buf, size);
-			serial_print("%s", buf);
-			buf[size-2] = '\0';
-			oled_show_string(0, 0, buf);
-			//serial_print("%d %d %d\r\n", mpu.rawAccel[0], mpu.rawAccel[1], mpu.rawAccel[2]);
-			//serial_print("%d %d %d\r\n", m_calAccel[0], m_calAccel[1], m_calAccel[2]);
+			serial_println("%s", buf);
 		}
 	}
 }
@@ -87,37 +62,37 @@ static portTASK_FUNCTION(vMPU6050TestTask, pvParameters)
 static int mpu6050_config()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
-	NVIC_InitTypeDef myNVIC_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
 
 	vSemaphoreCreateBinary(mpu6050Semaphore);
-	/* GPIOA clock enable */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
 	/*-------------------------- GPIO Configuration ----------------------------*/
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource1);
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOC, EXTI_PinSource5);
 
 	/* Configure Button EXTI line */
-	EXTI_InitStructure.EXTI_Line = EXTI_Line1;
+	EXTI_InitStructure.EXTI_Line = EXTI_Line5;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
     /* Enable and set Button EXTI Interrupt to the lowest priority */
-    myNVIC_InitStructure.NVIC_IRQChannel = EXTI1_IRQn;
-    myNVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY;
-    myNVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
-    myNVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&myNVIC_InitStructure);
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
 
 	//mpu6050_initialize();
 	//mpu6050_dmpInitialize();
@@ -127,4 +102,19 @@ static int mpu6050_config()
 	mpu6050_setZGyroOffset(-85);
 	mpu6050_setZAccelOffset(1788);
 	*/
+}
+
+void EXTI9_5_IRQHandler(void)
+//void EXTI1_IRQHandler(void)
+{
+	long lHigherPriorityTaskWoken = pdFALSE;
+	uint8_t status;
+
+	status = GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_5);
+
+	EXTI_ClearITPendingBit(EXTI_Line5);
+	if (status == Bit_RESET) { 
+		xSemaphoreGiveFromISR(mpu6050Semaphore, &lHigherPriorityTaskWoken );
+		portEND_SWITCHING_ISR(lHigherPriorityTaskWoken);
+	}
 }

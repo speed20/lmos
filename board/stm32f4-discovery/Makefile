@@ -23,6 +23,7 @@ tmp_objs  = main.o \
 		stm32f429i_discovery_lcd.o \
 		isr.o \
 		task_pulse.o \
+		task_mpu6050.o \
 		task_flash.o \
 		GUIConf.o \
 		LCDConf.o \
@@ -31,6 +32,7 @@ tmp_objs  = main.o \
 
 #		task_asr.o \
 #		task_mpu6050.o \
+#		task_pulse.o \
 		arm_sin_f32.o \
 		task_ir.o
 

@@ -357,7 +357,7 @@
 #define MPU6050_DMP_MEMORY_CHUNK_SIZE   16
 
 /* user defined */
-#define MPU6050_BUS 0 
+#define MPU6050_BUS 2
 #define I2C_READ 0x80
 
 #define pgm_read_byte(addr) (*(const char *)(addr))

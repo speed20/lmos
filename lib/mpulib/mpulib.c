@@ -250,7 +250,11 @@ int mpulib_read(mpudata_t *mpu)
     int result;
 	short intStatus;
 
-	mpu_get_int_status(&intStatus);                       // get the current MPU state
+	if (mpu_get_int_status(&intStatus) < 0) {
+		serial_println("i2c error");
+		return -1;
+	}                       // get the current MPU state
+
 	if ((intStatus & (MPU_INT_STATUS_DMP | MPU_INT_STATUS_DMP_0)) 
 			!= (MPU_INT_STATUS_DMP | MPU_INT_STATUS_DMP_0))
 		return -1;

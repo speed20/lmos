@@ -10,7 +10,7 @@ define all_header_dir
 $(addprefix -I./,$(shell find $(1) -name inc))
 endef
 
-CONFIG_HAL_i2c=n
+CONFIG_HAL_i2c=y
 CONFIG_HAL_serial=y
 CONFIG_HAL_spi=n
 CONFIG_HAL_time=y

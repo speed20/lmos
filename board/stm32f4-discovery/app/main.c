@@ -47,8 +47,8 @@ int main(void)
 
 	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
 	//vStartCtrlTask(mainBLOCK_Q_PRIORITY);
-	//vStartPulseTask(mainFLASH_TASK_PRIORITY);
-	//vStartMPU6050Tasks(mainFLOP_TASK_PRIORITY);
+	vStartPulseTask(mainFLASH_TASK_PRIORITY);
+	vStartMPUTasks(mainFLOP_TASK_PRIORITY);
 	//vStartIRTestTask(mainIR_TASK_PRIORITY);
 	//vStartASRTestTask(mainIR_TASK_PRIORITY);
 
@@ -71,7 +71,7 @@ static void prvSetupHardware( void )
 	vParTestInitialise();
 	serial_init(PRINT_PORT, BAUDRATE);
 	STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI);
-//	i2c_init(0, 400000);
+	i2c_init(2, 400000);
 }
 /*-----------------------------------------------------------*/
 
