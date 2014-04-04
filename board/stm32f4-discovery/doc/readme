@@ -1,0 +1,17 @@
+1 pin map
+
+
+2 interrupt priority define
+LDTC			0
+usart1			1
+usb_otg			2
+TIM1			3
+DMA2_Stream7_IRQn	1	DMA USART1 send
+USART1_IRQn			1	USART receive irq
+ADC1_CH6_DMA		8
+button			0x0f
+
+3 timer define
+TIM1			Delay()
+TIM2			set adc1 sample freq in task_pulse.c
+TIM3			generate PCM in task_pulse.c
