@@ -3,7 +3,7 @@
 #include "global_includes.h"
 
 typedef struct {
-	uint8_t bus_num;
+	uint8_t bus;
 	uint8_t addr;
 }i2c_dev;
 

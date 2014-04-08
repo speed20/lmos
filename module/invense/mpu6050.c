@@ -2992,7 +2992,7 @@ int mpu6050_write_reg(unsigned char slave_addr, unsigned char reg_addr, unsigned
 
 	ret = i2c_write_bytes(&mpu6050, reg_addr, length, data);
 	if (ret != 0) {
-		serial_println("i2c write bus %d error with %d", mpu6050.bus_num, ret);
+		serial_println("i2c write bus %d error with %d", mpu6050.bus, ret);
 	}
 
 	return ret;
