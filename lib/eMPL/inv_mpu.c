@@ -40,7 +40,7 @@
 
 #define i2c_write   mpu6050_write_reg
 #define i2c_read    mpu6050_read_reg
-#define delay_ms(x)    Delay(x*1000)
+#define delay_ms(x) vTaskDelay(x)
 
 //#define DEBUG_MPU
 #ifdef DEBUG_MPU

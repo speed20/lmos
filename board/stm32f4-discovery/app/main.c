@@ -45,8 +45,8 @@ int main(void)
 	prvSetupHardware();
 	USBConfig();
 
-	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
-	//vStartCtrlTask(mainBLOCK_Q_PRIORITY);
+//	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
+	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
 	vStartPulseTask(mainFLASH_TASK_PRIORITY);
 	vStartMPUTasks(mainFLOP_TASK_PRIORITY);
 	//vStartIRTestTask(mainIR_TASK_PRIORITY);

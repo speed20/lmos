@@ -2986,7 +2986,7 @@ void mpu6050_setDMPConfig2(uint8_t config) {
 	i2c_write_byte(&mpu6050, MPU6050_RA_DMP_CFG_2, config);
 }
 
-int mpu6050_write_reg(unsigned char slave_addr, unsigned char reg_addr, unsigned char length, unsigned char *data)
+int mpu6050_write_reg(uint8_t slave_addr, uint8_t reg_addr, uint32_t length, uint8_t *data)
 {
 	int8_t ret;
 
@@ -2998,7 +2998,7 @@ int mpu6050_write_reg(unsigned char slave_addr, unsigned char reg_addr, unsigned
 	return ret;
 }
 
-int mpu6050_read_reg(unsigned char slave_addr, unsigned char reg_addr, unsigned char length, unsigned char *data)
+int mpu6050_read_reg(uint8_t slave_addr, uint8_t reg_addr, uint32_t length, uint8_t *data)
 {
 	int8_t ret;
 
