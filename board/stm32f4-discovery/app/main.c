@@ -71,7 +71,7 @@ static void prvSetupHardware( void )
 	vParTestInitialise();
 	serial_init(PRINT_PORT, BAUDRATE);
 	STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI);
-	i2c_init(2, 400000);
+	i2c_init(2, 100000);
 }
 /*-----------------------------------------------------------*/
 

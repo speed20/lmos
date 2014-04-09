@@ -16,7 +16,7 @@
 #define I2C_DMA_STREAM_TX            DMA1_Stream4
 #define I2C_DMA_STREAM_RX            DMA1_Stream2   
 #define I2C_DMA_CLK                  RCC_AHB1Periph_DMA1
-#define I2C_DR_Address               &(I2C3->DR)
+#define I2C_DR_Address               (&(I2C3->DR))
 
 #define I2C_DMA_TX_IRQHandler        DMA1_Stream4_IRQHandler
 #define I2C_DMA_RX_IRQHandler        DMA1_Stream2_IRQHandler   
@@ -40,6 +40,11 @@ I2C_TypeDef *i2c_bus[] = {
 
 DMA_InitTypeDef    DMA_InitStructure; 
 NVIC_InitTypeDef   NVIC_InitStructure;
+
+enum {
+	I2C_DIRECTION_TX = 0,
+	I2C_DIRECTION_RX = 1,
+};
 
 volatile uint8_t i2c_rx_state;
 volatile uint8_t i2c_tx_state;
@@ -111,14 +116,14 @@ void i2c_init(uint8_t ch, uint32_t clock)
 #ifdef I2C_USE_DMA
 			/* Configure and enable I2C DMA TX Channel interrupt */
 			NVIC_InitStructure.NVIC_IRQChannel = I2C_DMA_TX_IRQn;
-			NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 9;
+			NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 			NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 			NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 			NVIC_Init(&NVIC_InitStructure);
 
 			/* Configure and enable I2C DMA RX Channel interrupt */
 			NVIC_InitStructure.NVIC_IRQChannel = I2C_DMA_RX_IRQn;
-			NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 10;
+			NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 			NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 			NVIC_Init(&NVIC_InitStructure);  
 
@@ -254,9 +259,8 @@ uint8_t i2c_read_bits(i2c_dev *dev, uint8_t addr, uint8_t bit, uint8_t len)
 
 void I2C_DMAConfig(uint32_t pBuffer, uint32_t BufferSize, uint32_t Direction)
 { 
-	serial_println("dma xfer size: %d", BufferSize);
 	/* Initialize the DMA with the new parameters */
-	if (Direction == sEE_DIRECTION_TX) {
+	if (Direction == I2C_DIRECTION_TX) {
 		/* Configure the DMA Tx Stream with the buffer address and the buffer size */
 		DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)pBuffer;
 		DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;    
@@ -318,33 +322,28 @@ int8_t i2c_read_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
   
 	/*!< Send addr address for read */
 	I2C_Send7bitAddress(i2c_bus[dev->bus], dev->addr, I2C_Direction_Receiver);  
-  
+
+	timeout = I2C_FLAG_TIMEOUT;
+	while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
+		if((timeout--) == 0) return -1;
+	}
+
 	/* If number of data to be read is 1, then DMA couldn't be used */
 	/* One Byte Master Reception procedure (POLLING) ---------------------------*/
 	if (len < 2) {
-		/* Wait on ADDR flag to be set (ADDR is still not cleared at this level */
-		timeout = I2C_FLAG_TIMEOUT;
-		while(I2C_GetFlagStatus(i2c_bus[dev->bus], I2C_FLAG_ADDR) == RESET) {
-			if((timeout--) == 0) return -1;
-		}     
-	
 		/*!< Disable Acknowledgement */
 		I2C_AcknowledgeConfig(i2c_bus[dev->bus], DISABLE);   
-	
-		/* Clear ADDR addrister by reading SR1 then SR2 addrister (SR1 has already been read) */
-		(void)i2c_bus[dev->bus]->SR2;
 	
 		/*!< Send STOP Condition */
 		I2C_GenerateSTOP(i2c_bus[dev->bus], ENABLE);
 	
 		/* Wait for the byte to be received */
 		timeout = I2C_FLAG_TIMEOUT;
-		while(I2C_GetFlagStatus(i2c_bus[dev->bus], I2C_FLAG_RXNE) == RESET) {
+		while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_BYTE_RECEIVED)) {
 			if((timeout--) == 0) return -1;
 		}
 	
-		/*!< Read the byte received from the EEPROM */
-		*buf = I2C_ReceiveData(i2c_bus[dev->bus]);
+		buf[0] = I2C_ReceiveData(i2c_bus[dev->bus]);
 
 		/* Wait to make sure that STOP control bit has been cleared */
 		timeout = I2C_FLAG_TIMEOUT;
@@ -355,14 +354,8 @@ int8_t i2c_read_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
 		/*!< Re-Enable Acknowledgement to be ready for another reception */
 		I2C_AcknowledgeConfig(i2c_bus[dev->bus], ENABLE);    
 	} else/* More than one Byte Master Reception procedure (DMA) -----------------*/ {
-		/*!< Test on EV6 and clear it */
-		timeout = I2C_FLAG_TIMEOUT;
-		while(!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
-			if((timeout--) == 0) return -1;
-		}  
-
 		/* Configure the DMA Rx Channel with the buffer address and the buffer size */
-		I2C_DMAConfig((uint32_t)buf, len, sEE_DIRECTION_RX);
+		I2C_DMAConfig((uint32_t)buf, len, I2C_DIRECTION_RX);
 
 		/* Inform the DMA that the next End Of Transfer Signal will be the last one */
 		I2C_DMALastTransferCmd(i2c_bus[dev->bus], ENABLE);
@@ -373,7 +366,7 @@ int8_t i2c_read_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
 		DMA_Cmd(I2C_DMA_STREAM_RX, ENABLE);
 
 		/* If all operations OK, return sEE_OK (0) */
-		while (i2c_rx_state != 0);
+		while (i2c_rx_state);
 	}
 
 	return 0;
@@ -398,7 +391,6 @@ int8_t i2c_write_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
 		if((timeout--) == 0) return -1;
 	}
   
-	/*!< Send EEPROM address for write */
 	I2C_Send7bitAddress(i2c_bus[dev->bus], dev->addr, I2C_Direction_Transmitter);
 
 	/*!< Test on EV6 and clear it */
@@ -415,11 +407,26 @@ int8_t i2c_write_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
 		if((timeout--) == 0) return -1;
 	}
 
-	i2c_tx_state = 1;
-	I2C_DMAConfig((uint32_t)buf, len, sEE_DIRECTION_TX);
-	DMA_Cmd(I2C_DMA_STREAM_TX, ENABLE);
+#if 0
+	if (len < 2) {
+		/* Transmit the first address for write operation */
+		I2C_SendData(i2c_bus[dev->bus], buf[0]);
 
-	while (i2c_tx_state != 0);
+		/* Test on EV8 and clear it */
+		timeout = I2C_FLAG_TIMEOUT;
+		while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+			if((timeout--) == 0) return -1;
+		}
+
+		I2C_GenerateSTOP(i2c_bus[dev->bus], ENABLE);  
+	} else {
+#endif
+		i2c_tx_state = 1;
+		I2C_DMAConfig((uint32_t)buf, len, I2C_DIRECTION_TX);
+		DMA_Cmd(I2C_DMA_STREAM_TX, ENABLE);
+
+		while (i2c_tx_state);
+//	}
 
 	return 0;
 }
@@ -430,7 +437,6 @@ void I2C_DMA_TX_IRQHandler(void)
 
 	/* Check if the DMA transfer is complete */
 	if(DMA_GetFlagStatus(I2C_DMA_STREAM_TX, I2C_TX_DMA_FLAG_TCIF) != RESET) {  
-		serial_println("handle tx irq");
 		/* Disable the DMA Tx Stream and Clear TC flag */  
 		DMA_Cmd(I2C_DMA_STREAM_TX, DISABLE);
 
@@ -454,7 +460,6 @@ void I2C_DMA_RX_IRQHandler(void)
 {
 	/* Check if the DMA transfer is complete */
 	if(DMA_GetFlagStatus(I2C_DMA_STREAM_RX, I2C_RX_DMA_FLAG_TCIF) != RESET) {      
-		serial_println("handle rx irq");
 		/*!< Send STOP Condition */
 		I2C_GenerateSTOP(I2C3, ENABLE);    
     

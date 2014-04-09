@@ -1,7 +1,7 @@
 #include "hmc5883l.h"
 #include "i2c_bsp.h"
 
-i2c_dev hmc5883l = {0, (HMC5883L_ADDRESS << 1)};
+i2c_dev hmc5883l = {2, (HMC5883L_ADDRESS << 1)};
 uint8_t mode;
 
 /** Power on and prepare for general usage.

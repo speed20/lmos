@@ -42,8 +42,10 @@ static portTASK_FUNCTION(vMPUTask, pvParameters)
 	xSemaphoreTake(mpu6050Semaphore, 0);
 
 	if (mpulib_init(20, 10) < 0) {
+		serial_println("mpulib init failed");
 		for (;;);
 	}
+	serial_println("mpu config finish");
 
 //	set_calibration(0);
 //	set_calibration(1);
