@@ -46,8 +46,8 @@ enum {
 	I2C_DIRECTION_RX = 1,
 };
 
-volatile uint8_t i2c_rx_state;
-volatile uint8_t i2c_tx_state;
+volatile uint8_t i2c_rx_complete;
+volatile uint8_t i2c_tx_complete;
 
 void i2c_init(uint8_t ch, uint32_t clock)
 {
@@ -257,6 +257,7 @@ uint8_t i2c_read_bits(i2c_dev *dev, uint8_t addr, uint8_t bit, uint8_t len)
 	return byte;
 }
 
+#ifdef I2C_USE_DMA
 void I2C_DMAConfig(uint32_t pBuffer, uint32_t BufferSize, uint32_t Direction)
 { 
 	/* Initialize the DMA with the new parameters */
@@ -323,23 +324,25 @@ int8_t i2c_read_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
 	/*!< Send addr address for read */
 	I2C_Send7bitAddress(i2c_bus[dev->bus], dev->addr, I2C_Direction_Receiver);  
 
-	timeout = I2C_FLAG_TIMEOUT;
-	while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
-		if((timeout--) == 0) return -1;
-	}
-
 	/* If number of data to be read is 1, then DMA couldn't be used */
 	/* One Byte Master Reception procedure (POLLING) ---------------------------*/
 	if (len < 2) {
+		timeout = I2C_FLAG_TIMEOUT;
+		while (I2C_GetFlagStatus(i2c_bus[dev->bus], I2C_FLAG_ADDR) == RESET) {
+			if((timeout--) == 0) return -1;
+		}
+
 		/*!< Disable Acknowledgement */
 		I2C_AcknowledgeConfig(i2c_bus[dev->bus], DISABLE);   
+
+		i2c_bus[dev->bus]->SR2;
 	
 		/*!< Send STOP Condition */
 		I2C_GenerateSTOP(i2c_bus[dev->bus], ENABLE);
 	
 		/* Wait for the byte to be received */
 		timeout = I2C_FLAG_TIMEOUT;
-		while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_BYTE_RECEIVED)) {
+		while (I2C_GetFlagStatus(i2c_bus[dev->bus], I2C_FLAG_RXNE) == RESET) {
 			if((timeout--) == 0) return -1;
 		}
 	
@@ -354,19 +357,24 @@ int8_t i2c_read_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
 		/*!< Re-Enable Acknowledgement to be ready for another reception */
 		I2C_AcknowledgeConfig(i2c_bus[dev->bus], ENABLE);    
 	} else/* More than one Byte Master Reception procedure (DMA) -----------------*/ {
+		timeout = I2C_FLAG_TIMEOUT;
+		while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
+			if((timeout--) == 0) return -1;
+		}
+
 		/* Configure the DMA Rx Channel with the buffer address and the buffer size */
 		I2C_DMAConfig((uint32_t)buf, len, I2C_DIRECTION_RX);
 
 		/* Inform the DMA that the next End Of Transfer Signal will be the last one */
 		I2C_DMALastTransferCmd(i2c_bus[dev->bus], ENABLE);
 
-		i2c_rx_state = 1;
+		i2c_rx_complete = 0;
 
 		/* Enable the DMA Rx Stream */
 		DMA_Cmd(I2C_DMA_STREAM_RX, ENABLE);
 
 		/* If all operations OK, return sEE_OK (0) */
-		while (i2c_rx_state);
+		while (!i2c_rx_complete);
 	}
 
 	return 0;
@@ -407,26 +415,10 @@ int8_t i2c_write_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
 		if((timeout--) == 0) return -1;
 	}
 
-#if 0
-	if (len < 2) {
-		/* Transmit the first address for write operation */
-		I2C_SendData(i2c_bus[dev->bus], buf[0]);
-
-		/* Test on EV8 and clear it */
-		timeout = I2C_FLAG_TIMEOUT;
-		while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
-			if((timeout--) == 0) return -1;
-		}
-
-		I2C_GenerateSTOP(i2c_bus[dev->bus], ENABLE);  
-	} else {
-#endif
-		i2c_tx_state = 1;
-		I2C_DMAConfig((uint32_t)buf, len, I2C_DIRECTION_TX);
-		DMA_Cmd(I2C_DMA_STREAM_TX, ENABLE);
-
-		while (i2c_tx_state);
-//	}
+	i2c_tx_complete = 0;
+	I2C_DMAConfig((uint32_t)buf, len, I2C_DIRECTION_TX);
+	DMA_Cmd(I2C_DMA_STREAM_TX, ENABLE);
+	while (!i2c_tx_complete);
 
 	return 0;
 }
@@ -452,7 +444,7 @@ void I2C_DMA_TX_IRQHandler(void)
 		I2C_GenerateSTOP(I2C3, ENABLE);
     
 		/* Reset the variable holding the number of data to be written */
-		i2c_tx_state = 0;  
+		i2c_tx_complete = 1;  
 	}
 }
 
@@ -462,12 +454,138 @@ void I2C_DMA_RX_IRQHandler(void)
 	if(DMA_GetFlagStatus(I2C_DMA_STREAM_RX, I2C_RX_DMA_FLAG_TCIF) != RESET) {      
 		/*!< Send STOP Condition */
 		I2C_GenerateSTOP(I2C3, ENABLE);    
-    
+
 		/* Disable the DMA Rx Stream and Clear TC Flag */  
 		DMA_Cmd(I2C_DMA_STREAM_RX, DISABLE);
 		DMA_ClearFlag(I2C_DMA_STREAM_RX, I2C_RX_DMA_FLAG_TCIF);
     
 		/* Reset the variable holding the number of data to be read */
-		i2c_rx_state = 0;
+		i2c_rx_complete = 1;
 	}
 }
+#else
+int8_t i2c_read_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
+{
+	uint32_t timeout, i;
+
+	/*!< While the bus is busy */
+	timeout = I2C_LONG_TIMEOUT;
+	while(I2C_GetFlagStatus(i2c_bus[dev->bus], I2C_FLAG_BUSY)) {
+		if((timeout--) == 0) return -1;
+	}
+  
+	/*!< Send START condition */
+	I2C_GenerateSTART(i2c_bus[dev->bus], ENABLE);
+  
+	/*!< Test on EV5 and clear it (cleared by reading SR1 then writing to DR) */
+	timeout = I2C_FLAG_TIMEOUT;
+	while(!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_MODE_SELECT)) {
+		if((timeout--) == 0) return -1;
+	}
+  
+	I2C_Send7bitAddress(i2c_bus[dev->bus], dev->addr, I2C_Direction_Transmitter);
+
+	/*!< Test on EV6 and clear it */
+	timeout = I2C_FLAG_TIMEOUT;
+	while(!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
+		if((timeout--) == 0) return -1;
+	} 
+
+	I2C_SendData(i2c_bus[dev->bus], addr);
+
+	/*!< Test on EV8 and clear it */
+	timeout = I2C_FLAG_TIMEOUT;
+	while(!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+		if((timeout--) == 0) return -1;
+	}
+
+	/*!< Send STRAT condition a second time */  
+	I2C_GenerateSTART(i2c_bus[dev->bus], ENABLE);
+  
+	/*!< Test on EV5 and clear it (cleared by reading SR1 then writing to DR) */
+	timeout = I2C_FLAG_TIMEOUT;
+	while(!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_MODE_SELECT)) {
+		if((timeout--) == 0) return -1;
+	} 
+  
+	/*!< Send addr address for read */
+	I2C_Send7bitAddress(i2c_bus[dev->bus], dev->addr, I2C_Direction_Receiver);  
+
+	timeout = I2C_FLAG_TIMEOUT;
+	while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
+		if((timeout--) == 0) return -1;
+	}
+
+	for (i=0; i<len; i++) {
+		if (i + 1 == len) {
+			/*!< Disable Acknowledgement */
+			I2C_AcknowledgeConfig(i2c_bus[dev->bus], DISABLE);   
+		
+			/*!< Send STOP Condition */
+			I2C_GenerateSTOP(i2c_bus[dev->bus], ENABLE);
+		}
+
+		timeout = I2C_FLAG_TIMEOUT;
+		while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_BYTE_RECEIVED)) {
+			if((timeout--) == 0) return -1;
+		}
+
+		buf[i] = I2C_ReceiveData(i2c_bus[dev->bus]);
+	}
+		
+	/*!< Re-Enable Acknowledgement to be ready for another reception */
+	I2C_AcknowledgeConfig(i2c_bus[dev->bus], ENABLE);    
+
+	return 0;
+}
+
+int8_t i2c_write_bytes(i2c_dev *dev, uint8_t addr, uint32_t len, uint8_t *buf)
+{
+	uint32_t timeout, i;
+
+	/*!< While the bus is busy */
+	timeout = I2C_LONG_TIMEOUT;
+	while(I2C_GetFlagStatus(i2c_bus[dev->bus], I2C_FLAG_BUSY)) {
+		if((timeout--) == 0) return -1;
+	}
+  
+	/*!< Send START condition */
+	I2C_GenerateSTART(i2c_bus[dev->bus], ENABLE);
+  
+	/*!< Test on EV5 and clear it (cleared by reading SR1 then writing to DR) */
+	timeout = I2C_FLAG_TIMEOUT;
+	while(!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_MODE_SELECT)) {
+		if((timeout--) == 0) return -1;
+	}
+  
+	I2C_Send7bitAddress(i2c_bus[dev->bus], dev->addr, I2C_Direction_Transmitter);
+
+	/*!< Test on EV6 and clear it */
+	timeout = I2C_FLAG_TIMEOUT;
+	while(!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
+		if((timeout--) == 0) return -1;
+	} 
+
+	I2C_SendData(i2c_bus[dev->bus], addr);
+
+	/*!< Test on EV8 and clear it */
+	timeout = I2C_FLAG_TIMEOUT;
+	while(!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+		if((timeout--) == 0) return -1;
+	}
+
+	for (i=0; i<len; i++) {
+		/* Transmit the first address for write operation */
+		I2C_SendData(i2c_bus[dev->bus], buf[i]);
+
+		/* Test on EV8 and clear it */
+		timeout = I2C_FLAG_TIMEOUT;
+		while (!I2C_CheckEvent(i2c_bus[dev->bus], I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+			if((timeout--) == 0) return -1;
+		}
+	}
+	I2C_GenerateSTOP(i2c_bus[dev->bus], ENABLE);  
+
+	return 0;
+}
+#endif
