@@ -60,7 +60,6 @@ Purpose     : Display controller configuration (single layer)
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include <string.h>
 #include "stm32f4xx_ltdc.h"
 #include "GUI.h"
 #include "GUI_Private.h"
@@ -101,7 +100,7 @@ Purpose     : Display controller configuration (single layer)
 #define NUM_VSCREENS 1
 
 #undef  GUI_NUM_LAYERS
-#define GUI_NUM_LAYERS 2
+#define GUI_NUM_LAYERS 1
 
 #define COLOR_CONVERSION_0 GUICC_M565
 #define DISPLAY_DRIVER_0   GUIDRV_LIN_16
@@ -147,7 +146,6 @@ static U32 aBuffer_BG   [XSIZE_PHYS * sizeof(U32)];
 
 /* Private function prototypes -----------------------------------------------*/
 static void LCD_AF_GPIOConfig(void);
-
 static void DMA_Index2ColorBulk(void * pIndex, LCD_COLOR * pColor, uint32_t NumItems, U8 SizeOfIndex, uint32_t PixelFormat);
 static void DMA_Color2IndexBulk(LCD_COLOR * pColor, void * pIndex, uint32_t NumItems, U8 SizeOfIndex, uint32_t PixelFormat);
 
@@ -791,7 +789,6 @@ static void LCD_LL_Init(uint32_t LayerIndex)
   LTDC_InitTypeDef       LTDC_InitStruct;
   LTDC_Layer_InitTypeDef LTDC_Layer_Init;
   LTDC_CLUT_InitTypeDef  LTDC_CLUT_InitStruct;
-  NVIC_InitTypeDef		NVIC_InitStructure;
   
   if (LayerIndex >= GUI_NUM_LAYERS) 
   {
@@ -833,7 +830,7 @@ static void LCD_LL_Init(uint32_t LayerIndex)
     
     
     /* Configure PLLSAI prescalers for LCD */
-    RCC_PLLSAIConfig(192, 7, 3);
+    RCC_PLLSAIConfig(192, 7, 4);
     RCC_LTDCCLKDivConfig(RCC_PLLSAIDivR_Div8);
     
     /* Enable PLLSAI Clock */
@@ -866,7 +863,7 @@ static void LCD_LL_Init(uint32_t LayerIndex)
     
     LTDC_ITConfig(LTDC_IT_LI, ENABLE);
 
-    NVIC_SetPriority(LTDC_IRQn, 0);
+    NVIC_SetPriority(LTDC_IRQn, 0xf);
     NVIC_EnableIRQ(LTDC_IRQn); 
   }   
   
@@ -1100,16 +1097,6 @@ static void LCD_DrawBitmap8bpp(int LayerIndex, int x, int y, U8 const * p, int x
   OffLineDst = layer_xsize[LayerIndex] - xSize;
   PixelFormat = GetPixelformat(LayerIndex);
   DMA_DrawBitmapL8((void *)p, (void *)AddrDst, OffLineSrc, OffLineDst, PixelFormat, xSize, ySize);
-}
-
-/**
-  * @brief  Transfer complete interrupt of DMA2D
-  * @param  None 
-  * @retval None
-  */
-void DMA2D_IRQHandler(void)
-{
-  DMA2D->IFCR = (U32)DMA2D_IFSR_CTCIF;
 }
 
 /**
