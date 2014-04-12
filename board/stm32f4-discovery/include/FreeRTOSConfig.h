@@ -40,7 +40,7 @@ extern uint32_t SystemCoreClock;
 #define configENABLE_BACKWARD_COMPATIBILITY 0
 
 /* Co-routine definitions. */
-#define configUSE_CO_ROUTINES 		1
+#define configUSE_CO_ROUTINES 		0
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 
 /* Software timer definitions. */

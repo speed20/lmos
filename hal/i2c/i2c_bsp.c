@@ -452,13 +452,13 @@ void I2C_DMA_RX_IRQHandler(void)
 {
 	/* Check if the DMA transfer is complete */
 	if(DMA_GetFlagStatus(I2C_DMA_STREAM_RX, I2C_RX_DMA_FLAG_TCIF) != RESET) {      
-		/*!< Send STOP Condition */
-		I2C_GenerateSTOP(I2C3, ENABLE);    
-
 		/* Disable the DMA Rx Stream and Clear TC Flag */  
 		DMA_Cmd(I2C_DMA_STREAM_RX, DISABLE);
 		DMA_ClearFlag(I2C_DMA_STREAM_RX, I2C_RX_DMA_FLAG_TCIF);
-    
+
+		/*!< Send STOP Condition */
+		I2C_GenerateSTOP(I2C3, ENABLE);    
+
 		/* Reset the variable holding the number of data to be read */
 		i2c_rx_complete = 1;
 	}

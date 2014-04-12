@@ -43,12 +43,12 @@ extern USB_OTG_CORE_HANDLE  USB_OTG_dev;
 int main(void)
 {
 	prvSetupHardware();
-	USBConfig();
+//	USBConfig();
 
 //	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
-	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
-	vStartPulseTask(mainFLASH_TASK_PRIORITY);
-	vStartMPUTasks(mainFLOP_TASK_PRIORITY);
+//	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
+//	vStartPulseTask(mainFLASH_TASK_PRIORITY);
+	vStartMPUTasks(mainFLOP_TASK_PRIORITY+1);
 	//vStartIRTestTask(mainIR_TASK_PRIORITY);
 	//vStartASRTestTask(mainIR_TASK_PRIORITY);
 
@@ -71,7 +71,7 @@ static void prvSetupHardware( void )
 	vParTestInitialise();
 	serial_init(PRINT_PORT, BAUDRATE);
 	STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI);
-	i2c_init(2, 100000);
+	i2c_init(2, 400000);
 }
 /*-----------------------------------------------------------*/
 

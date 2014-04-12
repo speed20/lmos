@@ -48,7 +48,7 @@ void serial_init(uint8_t port_num, uint32_t baudrate)
 
 #ifdef SERIAL_USE_DMA
 			NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream7_IRQn;
-			NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+			NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
 			NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
 			NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 			NVIC_Init(&NVIC_InitStructure);
