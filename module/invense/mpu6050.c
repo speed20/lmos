@@ -2989,8 +2989,9 @@ void mpu6050_setDMPConfig2(uint8_t config) {
 int mpu6050_write_reg(uint8_t slave_addr, uint8_t reg_addr, uint32_t length, uint8_t *data)
 {
 	int8_t ret;
+	i2c_dev dev = {MPU6050_BUS, (slave_addr << 1)};
 
-	ret = i2c_write_bytes(&mpu6050, reg_addr, length, data);
+	ret = i2c_write_bytes(&dev, reg_addr, length, data);
 	if (ret != 0) {
 		serial_println("i2c write bus %d error with %d", mpu6050.bus, ret);
 	}
@@ -3001,8 +3002,9 @@ int mpu6050_write_reg(uint8_t slave_addr, uint8_t reg_addr, uint32_t length, uin
 int mpu6050_read_reg(uint8_t slave_addr, uint8_t reg_addr, uint32_t length, uint8_t *data)
 {
 	int8_t ret;
+	i2c_dev dev = {MPU6050_BUS, (slave_addr << 1)};
 
-	ret = i2c_read_bytes(&mpu6050, reg_addr, length, data);
+	ret = i2c_read_bytes(&dev, reg_addr, length, data);
 	if (ret < 0) {
 		serial_println("i2c read error with %d", ret);
 	}

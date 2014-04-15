@@ -5,7 +5,7 @@
 
 #define I2C_USE_DMA
 
-#define I2C_TIMEOUT         ((uint32_t)0x1000)
+#define I2C_TIMEOUT         ((uint32_t)1000)
 #define I2C_LONG_TIMEOUT         ((uint32_t)(10 * I2C_TIMEOUT))
 
 #define I2C_DMA_TX_IRQn              DMA1_Stream4_IRQn

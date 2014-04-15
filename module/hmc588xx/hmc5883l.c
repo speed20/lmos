@@ -24,6 +24,8 @@ void hmc5883l_initialize() {
     
     // write MODE register
     hmc5883l_setMode(HMC5883L_MODE_SINGLE);
+	mode = HMC5883L_MODE_SINGLE;
+	serial_println("hmc5883l init done");
 }
 
 /** Verify the I2C connection.
@@ -218,12 +220,18 @@ void hmc5883l_setMode(uint8_t newMode) {
  * @see HMC5883L_RA_DATAX_H
  */
 void hmc5883l_getHeading(int16_t *x, int16_t *y, int16_t *z) {
-	uint8_t buffer[6];
-    i2c_read_bytes(&hmc5883l, HMC5883L_RA_DATAX_H, 6, buffer);
+	uint8_t buffer[6], status;
     if (mode == HMC5883L_MODE_SINGLE) i2c_write_byte(&hmc5883l, HMC5883L_RA_MODE, HMC5883L_MODE_SINGLE << (HMC5883L_MODEREG_BIT - HMC5883L_MODEREG_LENGTH + 1));
-    *x = (((int16_t)buffer[0]) << 8) | buffer[1];
-    *y = (((int16_t)buffer[4]) << 8) | buffer[5];
-    *z = (((int16_t)buffer[2]) << 8) | buffer[3];
+    i2c_read_bytes(&hmc5883l, HMC5883L_RA_STATUS, 1, &status);
+	if (status & 0x01) { 
+		i2c_read_bytes(&hmc5883l, HMC5883L_RA_DATAX_H, 6, buffer);
+		*x = (((int16_t)buffer[0]) << 8) | buffer[1];
+		*y = (((int16_t)buffer[4]) << 8) | buffer[5];
+		*z = (((int16_t)buffer[2]) << 8) | buffer[3];
+		serial_println("%d %d %d", *x, *y, *z);
+	} else {
+		serial_println("read hmc error");
+	}
 }
 /** Get X-axis heading measurement.
  * @return 16-bit signed integer with X-axis heading
@@ -311,4 +319,7 @@ uint8_t hmc5883l_getIDB() {
  */
 uint8_t hmc5883l_getIDC() {
     return i2c_read_byte(&hmc5883l, HMC5883L_RA_ID_C);
+}
+
+uint8_t hmc5883l_calibrate() {
 }

@@ -64,6 +64,7 @@ inline void get_ms(uint32_t *timestamp)
 #define min(a,b) ((a<b)?a:b)
 
 #define MPU6050
+//#define SLAVE_BYPASS
 #define HMC5883L_SECONDARY
 //#define AK8975_SECONDARY
 
@@ -1539,13 +1540,13 @@ int mpu_set_sensors(unsigned char sensors)
         /* Latched interrupts only used in LP accel mode. */
         mpu_set_int_latched(0);
 
-#ifdef AK89xx_SECONDARY
-#ifdef AK89xx_BYPASS
+#ifdef SLAVE_BYPASS
     if (sensors & INV_XYZ_COMPASS)
         mpu_set_bypass(1);
     else
         mpu_set_bypass(0);
 #else
+#ifdef AK89xx_SECONDARY
     if (i2c_read(st.hw->addr, st.reg->user_ctrl, 1, &user_ctrl))
         return -1;
     /* Handle AKM power management. */
@@ -1565,7 +1566,6 @@ int mpu_set_sensors(unsigned char sensors)
     /* Enable/disable I2C master mode. */
     if (i2c_write(st.hw->addr, st.reg->user_ctrl, 1, &user_ctrl))
         return -1;
-#endif
 #elif defined HMC5883L_SECONDARY
     if (i2c_read(st.hw->addr, st.reg->user_ctrl, 1, &user_ctrl))
         return -1;
@@ -1587,6 +1587,7 @@ int mpu_set_sensors(unsigned char sensors)
     /* Enable/disable I2C master mode. */
     if (i2c_write(st.hw->addr, st.reg->user_ctrl, 1, &user_ctrl))
         return -1;
+#endif
 #endif
 
     st.chip_cfg.sensors = sensors;
@@ -2515,7 +2516,7 @@ static int setup_compass(void)
         return -1;
 
     /* Enable slave 0, 8-byte reads. */
-    data[0] = BIT_SLAVE_EN | 7;
+    data[0] = BIT_SLAVE_EN | 6;
     if (i2c_write(st.hw->addr, st.reg->s1_ctrl, 1, data))
         return -1;
 
@@ -2523,11 +2524,9 @@ static int setup_compass(void)
     data[0] = 0x03;
     if (i2c_write(st.hw->addr, st.reg->i2c_delay_ctrl, 1, data))
         return -1;
-
     return 0;
-#else
-	return -1;
 #endif
+	return -1;
 }
 
 /**
@@ -2544,7 +2543,7 @@ int mpu_get_compass_reg(short *data, unsigned long *timestamp)
     if (!(st.chip_cfg.sensors & INV_XYZ_COMPASS))
         return -1;
 
-#ifdef AK89xx_BYPASS
+#ifdef SLAVE_BYPASS
     if (i2c_read(st.chip_cfg.compass_addr, AKM_REG_ST1, 8, tmp))
         return -1;
     tmp[8] = AKM_SINGLE_MEASUREMENT;
@@ -2555,7 +2554,7 @@ int mpu_get_compass_reg(short *data, unsigned long *timestamp)
         return -1;
 #endif
 
-#if defined AK8975_SECONDARY
+#ifdef AK8975_SECONDARY
     /* AK8975 doesn't have the overrun error bit. */
     if (!(tmp[0] & AKM_DATA_READY))
         return -2;
@@ -2579,32 +2578,34 @@ int mpu_get_compass_reg(short *data, unsigned long *timestamp)
     if (timestamp)
         get_ms(timestamp);
     return 0;
-#elif defined HMC5883L_SECONDARY
+#endif
+	
+#ifdef HMC5883L_SECONDARY
     uint8_t buffer[7];
 
     if (!(st.chip_cfg.sensors & INV_XYZ_COMPASS))
         return -1;
 
-	if (i2c_read(st.hw->addr, st.reg->raw_compass, 7, buffer) < 0) {
+#ifdef SLAVE_BYPASS
+	hmc5883l_getHeading(&data[0], &data[1], &data[2]);
+#else
+	if (i2c_read(st.hw->addr, st.reg->raw_compass, 6, buffer) < 0) {
 		return -1;
 	}
 
-	if (buffer[6] & 0x01) { // data ready
-		data[0] = (((int16_t)buffer[0]) << 8) | buffer[1];
-		data[1] = (((int16_t)buffer[4]) << 8) | buffer[5];
-		data[2] = (((int16_t)buffer[2]) << 8) | buffer[3];
+	data[0] = (((int16_t)buffer[0]) << 8) | buffer[1];
+	data[1] = (((int16_t)buffer[4]) << 8) | buffer[5];
+	data[2] = (((int16_t)buffer[2]) << 8) | buffer[3];
 
-		/*
-		data[0] = ((long)data[0] * st.chip_cfg.mag_sens_adj[0]) >> 8;
-		data[1] = ((long)data[1] * st.chip_cfg.mag_sens_adj[1]) >> 8;
-		data[2] = ((long)data[2] * st.chip_cfg.mag_sens_adj[2]) >> 8;
-		*/
+	/*
+	data[0] = ((long)data[0] * st.chip_cfg.mag_sens_adj[0]) >> 8;
+	data[1] = ((long)data[1] * st.chip_cfg.mag_sens_adj[1]) >> 8;
+	data[2] = ((long)data[2] * st.chip_cfg.mag_sens_adj[2]) >> 8;
+	*/
 
-		if (timestamp)
-			get_ms(timestamp);
-	} else {
-		data[0] = data[1] = data[2] = 0;
-	}
+	if (timestamp)
+		get_ms(timestamp);
+#endif
 	return 0;
 #endif
 }
