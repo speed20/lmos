@@ -2413,7 +2413,7 @@ static int setup_compass(void)
     mpu_set_bypass(0);
 
     /* Set up master mode, master clock, and ES bit. */
-    data[0] = 0x40;
+    data[0] = 0x4d;
     if (i2c_write(st.hw->addr, st.reg->i2c_mst, 1, data))
         return -1;
 
@@ -2480,43 +2480,43 @@ static int setup_compass(void)
     st.chip_cfg.mag_sens_adj[2] = (long)256;
 
     /* Set up master mode, master clock, and ES bit. */
-    data[0] = 0x40;
+    data[0] = 0x4d;
     if (i2c_write(st.hw->addr, st.reg->i2c_mst, 1, data))
         return -1;
 
-    /* Slave 0 reads from HMC data registers. */
-    data[0] = BIT_I2C_READ | st.chip_cfg.compass_addr;
-    if (i2c_write(st.hw->addr, st.reg->s0_addr, 1, data))
-        return -1;
-
-    /* Compass reads start at this register. */
-    data[0] = HMC5883L_RA_DATAX_H;
-    if (i2c_write(st.hw->addr, st.reg->s0_reg, 1, data))
-        return -1;
-
-    /* Enable slave 0, 8-byte reads. */
-    data[0] = BIT_SLAVE_EN | 7;
-    if (i2c_write(st.hw->addr, st.reg->s0_ctrl, 1, data))
-        return -1;
-
-    /* Slave 1 changes HMC measurement mode. */
+    /* Slave 0 changes HMC measurement mode. */
     data[0] = st.chip_cfg.compass_addr;
-    if (i2c_write(st.hw->addr, st.reg->s1_addr, 1, data))
+    if (i2c_write(st.hw->addr, st.reg->s0_addr, 1, data))
         return -1;
 
     /* AKM measurement mode register. */
     data[0] = HMC5883L_RA_MODE;
-    if (i2c_write(st.hw->addr, st.reg->s1_reg, 1, data))
+    if (i2c_write(st.hw->addr, st.reg->s0_reg, 1, data))
         return -1;
 
     /* Enable slave 1, 1-byte writes. */
     data[0] = BIT_SLAVE_EN | 1;
-    if (i2c_write(st.hw->addr, st.reg->s1_ctrl, 1, data))
+    if (i2c_write(st.hw->addr, st.reg->s0_ctrl, 1, data))
         return -1;
 
     /* Set slave 1 data. */
-    data[0] = HMC5883L_MODE_SINGLE; //AKM_SINGLE_MEASUREMENT;
-    if (i2c_write(st.hw->addr, st.reg->s1_do, 1, data))
+    data[0] = HMC5883L_MODE_SINGLE;
+    if (i2c_write(st.hw->addr, st.reg->s0_do, 1, data))
+        return -1;
+
+    /* Slave 1 reads from HMC data registers. */
+    data[0] = BIT_I2C_READ | st.chip_cfg.compass_addr;
+    if (i2c_write(st.hw->addr, st.reg->s1_addr, 1, data))
+        return -1;
+
+    /* Compass reads start at this register. */
+    data[0] = HMC5883L_RA_DATAX_H;
+    if (i2c_write(st.hw->addr, st.reg->s1_reg, 1, data))
+        return -1;
+
+    /* Enable slave 0, 8-byte reads. */
+    data[0] = BIT_SLAVE_EN | 7;
+    if (i2c_write(st.hw->addr, st.reg->s1_ctrl, 1, data))
         return -1;
 
     /* Trigger slave 0 and slave 1 actions at each sample. */
@@ -2580,28 +2580,19 @@ int mpu_get_compass_reg(short *data, unsigned long *timestamp)
         get_ms(timestamp);
     return 0;
 #elif defined HMC5883L_SECONDARY
-    unsigned char tmp[7];
-	int i;
+    uint8_t buffer[7];
 
     if (!(st.chip_cfg.sensors & INV_XYZ_COMPASS))
         return -1;
 
-    if (i2c_read(st.hw->addr, st.reg->raw_compass, 7, tmp)) {
-        return -1;
+	if (i2c_read(st.hw->addr, st.reg->raw_compass, 7, buffer) < 0) {
+		return -1;
 	}
 
-	/*
-	for (i=0; i<8; i++) {
-		serial_print("0x%02x ", tmp[i]);
-	}
-
-	serial_println(".");
-	*/
-
-	if (tmp[6] & 0x01) { // data ready
-		data[0] = (tmp[1] << 8) | tmp[0];
-		data[1] = (tmp[3] << 8) | tmp[2];
-		data[2] = (tmp[5] << 8) | tmp[4];
+	if (buffer[6] & 0x01) { // data ready
+		data[0] = (((int16_t)buffer[0]) << 8) | buffer[1];
+		data[1] = (((int16_t)buffer[4]) << 8) | buffer[5];
+		data[2] = (((int16_t)buffer[2]) << 8) | buffer[3];
 
 		/*
 		data[0] = ((long)data[0] * st.chip_cfg.mag_sens_adj[0]) >> 8;
@@ -2611,12 +2602,10 @@ int mpu_get_compass_reg(short *data, unsigned long *timestamp)
 
 		if (timestamp)
 			get_ms(timestamp);
-
-		return 0;
 	} else {
-		log_d("xxxxxxxxx 2 failed: 0x%02x", tmp[6]);
-		return -1;
+		data[0] = data[1] = data[2] = 0;
 	}
+	return 0;
 #endif
 }
 

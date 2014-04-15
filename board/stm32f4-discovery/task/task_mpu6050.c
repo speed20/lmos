@@ -36,8 +36,8 @@ void mpu_draw_waveform(void *pdata)
 	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
 	unsigned char buf[64];
 
-	sprintf(buf, "%04d, %04d, %04d", ctx->data_roll[0], ctx->data_yaw[0], ctx->data_pitch[0]);
-	serial_println("%s", buf);
+//	sprintf(buf, "%04d, %04d, %04d", ctx->data_roll[0], ctx->data_yaw[0], ctx->data_pitch[0]);
+//	serial_println("%s", buf);
 
 #if 1
 	GUI_MULTIBUF_Begin();
@@ -97,7 +97,7 @@ static portTASK_FUNCTION(vMPUTask, pvParameters)
 	for (;;) {
 		xSemaphoreTake(mpu6050Semaphore, portMAX_DELAY);
 		if (mpulib_read(&mpu) == 0) {
-			size = sprintf(buf, "%03d,%03d,%03d", (int32_t)((mpu.fusedEuler[VEC3_X]) * RAD_TO_DEGREE), \
+			size = sprintf(buf, "%04d,%04d,%04d", (int32_t)((mpu.fusedEuler[VEC3_X]) * RAD_TO_DEGREE), \
 					(int32_t)((mpu.fusedEuler[VEC3_Y]) * RAD_TO_DEGREE), \
 					(int32_t)((mpu.fusedEuler[VEC3_Z]) * RAD_TO_DEGREE));
 //			serial_println("%s", buf);
@@ -115,8 +115,10 @@ static portTASK_FUNCTION(vMPUTask, pvParameters)
 			if (ctx.nr_point < N_SAMPLE)
 				ctx.nr_point++;
 
-			if (count++ % 10 == 0)
+			if (count++ % 5 == 0) {
+				serial_println(buf);
 				mpu_draw_waveform(&ctx);
+			}
 		}
 	}
 }

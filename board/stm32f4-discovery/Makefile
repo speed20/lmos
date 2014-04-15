@@ -67,6 +67,7 @@ $(image): $(objs) $(asm_objs)
            ${LDFLAGS} -o $@ $^  \
            '${LIBC}' '${LIBM}' '${LIBGCC}' 'lib/STemWinLibrary522/Lib/STemWin522_CM4_OS_GCC.a'
 	${OBJCOPY} -O binary $@ ${@:.elf=.bin}
+	${STRIP} $@
 
 $(OUT_DIR):
 ifeq ($(filter $(OUT_DIR),$(wildcard *)), )

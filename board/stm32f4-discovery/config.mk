@@ -2,9 +2,10 @@ export ROOT_DIR = $(shell pwd)/../..
 export CROSS_COMPILE = arm-none-eabi-
 export OUT_DIR = $(shell pwd)/out
 
-export CC	= $(CROSS_COMPILE)cc
+export CC	= $(CROSS_COMPILE)gcc
 export AR	= $(CROSS_COMPILE)ar
 LD	= $(CROSS_COMPILE)ld
+STRIP = $(CROSS_COMPILE)strip
 OBJCOPY = $(CROSS_COMPILE)objcopy
 
 export AFLAGS	:= -mthumb -mcpu=cortex-m4 -O2
