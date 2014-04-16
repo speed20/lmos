@@ -116,14 +116,11 @@ int mpulib_init(int sample_rate, int mix_factor)
 		serial_println("dmp_set_fifo_rate() failed");
 		return -1;
 	}
-	serial_println("%s %d", __func__, __LINE__);
 
 	if (mpu_set_dmp_state(1)) {
 		serial_println("mpu_set_dmp_state(1) failed");
 		return -1;
 	}
-
-	serial_println("%s %d", __func__, __LINE__);
 
 	serial_println("IMU Initialise done\n");
 
