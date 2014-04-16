@@ -20,12 +20,11 @@ void hmc5883l_initialize() {
         (HMC5883L_BIAS_NORMAL << (HMC5883L_CRA_BIAS_BIT - HMC5883L_CRA_BIAS_LENGTH + 1)));
 
     // write CONFIG_B register
-    hmc5883l_setGain(HMC5883L_GAIN_1090);
+    hmc5883l_setGain(HMC5883L_GAIN_1370);
     
     // write MODE register
     hmc5883l_setMode(HMC5883L_MODE_SINGLE);
 	mode = HMC5883L_MODE_SINGLE;
-	serial_println("hmc5883l init done");
 }
 
 /** Verify the I2C connection.
