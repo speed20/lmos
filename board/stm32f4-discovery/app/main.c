@@ -17,7 +17,7 @@
 #include "delay.h"
 #include "display.h"
 //#include "arm_math.h"
-#include "usb_core.h"
+//#include "usb_core.h"
 
 /* Priorities for the demo application tasks. */
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
@@ -38,7 +38,6 @@
 /*-----------------------------------------------------------*/
 static void prvSetupHardware( void );
 static void prvCheckTimerCallback( TimeOut_t xTimer );
-extern USB_OTG_CORE_HANDLE  USB_OTG_dev;
 
 int main(void)
 {

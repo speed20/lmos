@@ -320,5 +320,33 @@ uint8_t hmc5883l_getIDC() {
     return i2c_read_byte(&hmc5883l, HMC5883L_RA_ID_C);
 }
 
-uint8_t hmc5883l_calibrate() {
+uint8_t hmc5883l_calibrate(int16_t *sense) {
+	int16_t x, y, z, scale;
+    i2c_write_byte(&hmc5883l, HMC5883L_RA_CONFIG_A,
+        (HMC5883L_AVERAGING_8 << (HMC5883L_CRA_AVERAGE_BIT - HMC5883L_CRA_AVERAGE_LENGTH + 1)) |
+        (HMC5883L_RATE_15     << (HMC5883L_CRA_RATE_BIT - HMC5883L_CRA_RATE_LENGTH + 1)) |
+        (HMC5883L_BIAS_POSITIVE << (HMC5883L_CRA_BIAS_BIT - HMC5883L_CRA_BIAS_LENGTH + 1)));
+
+    // write CONFIG_B register
+    hmc5883l_setGain(HMC5883L_GAIN_1370);
+    
+    // write MODE register
+    hmc5883l_setMode(HMC5883L_MODE_SINGLE);
+
+	hmc5883l_getHeading(&x, &y, &z);
+
+	if (abs(x) > abs(y)) {
+		scale = y * 256 / x;
+		sense[0] = 256;
+		sense[1] = scale;
+	} else {
+		scale = x * 256 / y;
+		sense[0] = scale;
+		sense[1] = 256;
+	}
+
+	sense[2] = 256;
+
+	serial_println("x: %d y: %d", x, y);
+	return 0;
 }

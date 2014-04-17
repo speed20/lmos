@@ -6,7 +6,7 @@
 #include "task.h"
 #include "semphr.h"
 
-#include "usb_core.h"
+//#include "usb_core.h"
 #include <invense/mpu6050.h>
 #include <mpulib/mpulib.h>
 #include "GUI.h"
@@ -27,6 +27,8 @@ struct draw_ctx {
 	int16_t *data_yaw;
 	int16_t *data_pitch;
 	uint16_t nr_point;
+	int16_t roll, yaw, pitch;
+	int16_t sx, sy;
 };
 
 #define V_OFFSET 160
@@ -36,23 +38,28 @@ void mpu_draw_waveform(void *pdata)
 	struct draw_ctx *ctx = (struct draw_ctx *)pdata;
 	unsigned char buf[64];
 
-//	sprintf(buf, "%04d, %04d, %04d", ctx->data_roll[0], ctx->data_yaw[0], ctx->data_pitch[0]);
-//	serial_println("%s", buf);
-
 #if 1
 	GUI_MULTIBUF_Begin();
 	GUI_Clear();
 
-//	GUI_DispStringHCenterAt(buf, 120, 25);
-
 	GUI_SetColor(GUI_RED);
+	sprintf(buf, "roll: %d", ctx->roll);
+	GUI_DispStringAt(buf, 5, 10);
 	GUI_DrawGraph(ctx->data_roll, ctx->nr_point, 0, V_OFFSET);
 
+	GUI_SetColor(GUI_BLUE);
+	sprintf(buf, "pitch: %d", ctx->pitch);
+	GUI_DispStringAt(buf, 5, 20);
+	GUI_DrawGraph(ctx->data_pitch, ctx->nr_point, 0, V_OFFSET);
+
 	GUI_SetColor(GUI_DARKGREEN);
+	sprintf(buf, "yaw: %d", ctx->yaw);
+	GUI_DispStringAt(buf, 5, 30);
 	GUI_DrawGraph(ctx->data_yaw, ctx->nr_point, 0, V_OFFSET);
 
-	GUI_SetColor(GUI_BLUE);
-	GUI_DrawGraph(ctx->data_pitch, ctx->nr_point, 0, V_OFFSET);
+	GUI_SetColor(GUI_YELLOW);
+	sprintf(buf, "x: %d y: %d", ctx->sx, ctx->sy);
+	GUI_DispStringAt(buf, 5, 300);
 #endif
 
 	GUI_MULTIBUF_End();
@@ -62,61 +69,68 @@ void mpu_draw_waveform(void *pdata)
 #define N_SAMPLE 240
 static portTASK_FUNCTION(vMPUTask, pvParameters)
 {
-	unsigned char buf[128];
 	uint32_t size, i;
 	mpudata_t mpu;
 	int16_t roll[N_SAMPLE], yaw[N_SAMPLE], pitch[N_SAMPLE];
-	struct draw_ctx ctx = {roll, yaw, pitch, 1};
+	struct draw_ctx ctx = {roll, yaw, pitch, 1, 0, 0, 0};
 	uint32_t count;
+	float vx, vy, vz, ax, ay, az, sx, sy, sz;
+	int16_t gyro_bias[3], accel_bias[3];
 
-	//memset(&mpu, 0, sizeof(mpu));
-	mpu6050_config();
-
-#if 1
 	LCD_Init();
 	LTDC_Cmd(ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
 	GUI_Init();
-//	GUI_SelectLayer(1);
 	GUI_SetBkColor(GUI_TRANSPARENT);
 	GUI_SetPenSize(1);
-#endif
 
+	mpu6050_config();
+
+	mpu_run_self_test(gyro_bias, accel_bias);
+	serial_println("accel bias: %d %d %d", accel_bias[0], accel_bias[1], accel_bias[2]);
 	xSemaphoreTake(mpu6050Semaphore, 0);
 
-	if (mpulib_init(100, 10) < 0) {
+	if (mpulib_init(100, 5) < 0) {
 		serial_println("mpulib init failed");
 		for (;;);
 	}
-	serial_println("mpu config finish");
-
-//	set_calibration(0);
-//	set_calibration(1);
 
 	count = 0;
+	vx = vy = vz = .0f;
+	sx = sy = sz = .0f;
 	for (;;) {
 		xSemaphoreTake(mpu6050Semaphore, portMAX_DELAY);
 		if (mpulib_read(&mpu) == 0) {
-			size = sprintf(buf, "%04d,%04d,%04d", (int32_t)((mpu.fusedEuler[VEC3_X]) * RAD_TO_DEGREE), \
-					(int32_t)((mpu.fusedEuler[VEC3_Y]) * RAD_TO_DEGREE), \
-					(int32_t)((mpu.fusedEuler[VEC3_Z]) * RAD_TO_DEGREE));
-//			serial_println("%s", buf);
-
 			for (i=ctx.nr_point-1; i>0; i--) {
 				roll[i] = roll[i-1];
-				yaw[i] = yaw[i-1];
 				pitch[i] = pitch[i-1];
+				yaw[i] = yaw[i-1];
 			}
 
-			roll[0] = mpu.fusedEuler[VEC3_X] * RAD_TO_DEGREE * 120.0 / 180.0;
-			yaw[0] = mpu.fusedEuler[VEC3_Y] * RAD_TO_DEGREE * 120.0 / 180.0;
-			pitch[0] = mpu.fusedEuler[VEC3_Z] * RAD_TO_DEGREE * 120.0 / 180.0;
+			ctx.roll = mpu.fusedEuler[VEC3_X] * RAD_TO_DEGREE;
+			ctx.yaw = mpu.fusedEuler[VEC3_Z] * RAD_TO_DEGREE;
+			ctx.pitch = mpu.fusedEuler[VEC3_Y] * RAD_TO_DEGREE;
+
+//			serial_println("%d %d", mpu.rawAccel[0], mpu.rawAccel[1]);
+
+			vx = (float)mpu.rawAccel[0] / 100.0f;
+			vy = (float)mpu.rawAccel[1] / 100.0f;
+
+			sx += vx / 100.0f;
+			sy += vy / 100.0f;
+
+			ctx.sx = sx;
+			ctx.sy = sy;
+
+			roll[0] = ctx.roll * 160.0 / 180.0;
+			pitch[0] = ctx.pitch * 160.0 / 180.0;
+			yaw[0] = ctx.yaw * 160.0 / 180.0;
 
 			if (ctx.nr_point < N_SAMPLE)
 				ctx.nr_point++;
 
 			if (count++ % 5 == 0) {
-				serial_println(buf);
+//				serial_println(buf);
 				mpu_draw_waveform(&ctx);
 			}
 		}

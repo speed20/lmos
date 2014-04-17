@@ -14,7 +14,7 @@ CONFIG_HAL_i2c=y
 CONFIG_HAL_serial=y
 CONFIG_HAL_spi=n
 CONFIG_HAL_time=y
-CONFIG_HAL_usb=y
+CONFIG_HAL_usb=n
 
 ifeq ($(CONFIG_HAL_i2c), y)
 VPATH += $(hal_local_path)/i2c

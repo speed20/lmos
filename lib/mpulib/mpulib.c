@@ -122,6 +122,8 @@ int mpulib_init(int sample_rate, int mix_factor)
 		return -1;
 	}
 
+//	set_calibration(1);
+
 	serial_println("IMU Initialise done\n");
 
 	return 0;
@@ -364,6 +366,7 @@ int data_fusion(mpudata_t *mpu)
 	tilt_compensate(magQuat, unfusedQuat);
 
 	newMagYaw = -atan2f(magQuat[QUAT_Y], magQuat[QUAT_X]);
+//	serial_println("mag yaw: %d", (int32_t)(newMagYaw * RAD_TO_DEGREE));
 
 	if (newMagYaw != newMagYaw) {
 		serial_println("newMagYaw NAN");

@@ -60,7 +60,7 @@ CONFIG_stm32f4xx_hash_sha1=n
 CONFIG_stm32f4xx_rtc=n
 CONFIG_stm32f4xx_cryp_des=n
 
-CONFIG_STM32_USB_Device_Library=y
+CONFIG_STM32_USB_Device_Library=n
 CONFIG_Core=y
 CONFIG_Class_audio=n
 CONFIG_Class_cdc=y
@@ -68,7 +68,7 @@ CONFIG_Class_msc=n
 CONFIG_Class_hid=n
 CONFIG_Class_dfu=n
 
-CONFIG_STM32_USB_OTG_Driver=y
+CONFIG_STM32_USB_OTG_Driver=n
 CONFIG_usb_dcd=y
 CONFIG_usb_hdc=n
 CONFIG_usb_otg=n

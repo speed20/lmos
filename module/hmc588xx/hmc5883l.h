@@ -86,5 +86,6 @@ bool hmc5883l_getReadyStatus();
 uint8_t hmc5883l_getIDA();
 uint8_t hmc5883l_getIDB();
 uint8_t hmc5883l_getIDC();
+uint8_t hmc5883l_calibrate(int16_t *sense);
 
 #endif /* _HMC5883L_H_ */

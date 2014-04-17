@@ -2471,14 +2471,17 @@ static int setup_compass(void)
     unsigned char data[4];
 
     mpu_set_bypass(1);
+//	hmc5883l_calibrate(st.chip_cfg.mag_sens_adj);
 	hmc5883l_initialize();
     mpu_set_bypass(0);
 
     st.chip_cfg.compass_addr = HMC5883L_ADDRESS;
 
+	/*
     st.chip_cfg.mag_sens_adj[0] = (long)256;
     st.chip_cfg.mag_sens_adj[1] = (long)256;
     st.chip_cfg.mag_sens_adj[2] = (long)256;
+	*/
 
     /* Set up master mode, master clock, and ES bit. */
     data[0] = 0x4d;
