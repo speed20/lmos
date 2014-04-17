@@ -1,7 +1,7 @@
 ifneq ($(OUT_DIR), )
 SOC := ARM_CM4F
 MEM_MANAGMENT := heap_2
-kernel_dir := kernel/Source
+kernel_dir := kernel/FreeRTOS/Source
 
 kernel_src += $(wildcard $(ROOT_DIR)/$(kernel_dir)/*.c)
 kernel_src += $(wildcard $(ROOT_DIR)/$(kernel_dir)/portable/GCC/$(SOC)/*.c)
