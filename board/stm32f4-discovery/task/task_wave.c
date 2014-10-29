@@ -22,7 +22,7 @@
 #define V_OFFSET 150
 
 #define BIAS 2048
-#define THRESHHOLD 800
+#define THRESHHOLD 0
 
 #define MAX_BYTE_BUF 128
 #define MAX_BIT_BUF (128*8)
@@ -135,13 +135,11 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 
 	start = 8;
 	index = 0;
-	tx = 0;
 	t0 = 0;
 	last_level = 0;
 
 	for (;;) {
 		xSemaphoreTake(xPulseSemaphore, portMAX_DELAY);
-#if 1
 		for (i=0; i<ADC_DMA_BUF_LEN; i++) {
 			if (adc_value[i] >= BIAS + THRESHHOLD) {
 				level = HIGH;
@@ -149,43 +147,12 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 				level = LOW;
 			}
 			if (RAISING(last_level, level)) {
-				diff = (i - tx) >= 0 ? (i - tx) : (i - tx + ADC_DMA_BUF_LEN);
-				if (start > 0) {
-					/* use header to caculate period */
-					period = diff;
-					tolerance = period / 4;
-					tx = i;
-					start--;
-					/* data start begin, clear data buffer */
-					if (start == 0) {
-						ctx.byte_count = 0;
-						memset(ctx.byte, 0, MAX_BYTE_BUF);
-					}
-				} else {
-					if (period - tolerance < diff && diff < period + tolerance) {
-						bit[index++] = 0;
-						tx = i;
-					} else if (diff < (period - tolerance) / 2 || diff > (period + tolerance) / 2){
-						serial_println("0 error");
-					}
-				}
-
 				diff = (i - t0) >= 0 ? (i - t0) : (i - t0 + ADC_DMA_BUF_LEN);
 				freq = sample_freq / diff;
 				if (abs(ctx.freq - freq) > 10)
 					ctx.freq = freq;
 				t0 = i;
 			} else if (FALLING(last_level, level)) {
-				if (start == 0) {
-					diff = (i - tx) >= 0 ? (i - tx) : (i - tx + ADC_DMA_BUF_LEN);
-					if (period - tolerance < diff && diff < period + tolerance) {
-						bit[index++] = 1;
-						tx = i;
-					} else if (diff < (period - tolerance) / 2 || diff > (period + tolerance) / 2){
-						serial_println("1 error");
-					}
-				}
-
 				diff = i - t0;
 				freq = sample_freq / diff;
 				duty = ctx.freq * 100 / freq;
@@ -193,29 +160,6 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 					ctx.duty = duty;
 			}
 			last_level = level;
-
-			if (i - tx > period*2 || index == MAX_BIT_BUF) {
-				if (index > 0) {
-					uint8_t byte = 0;
-
-					for (j=0; j<index; j++) {
-						ctx.byte[ctx.byte_count] |= bit[j] << j%8;
-
-						if (j%8 == 7) {
-//							serial_print("%c", ctx.byte[ctx.byte_count]);
-							ctx.byte_count++;
-						}
-					}
-					index = 0;
-				}
-
-				/* bus idle, stop */
-				if (i - tx > period*2) {
-					period = 0;
-					start = 8;
-					tx = 0;
-				}
-			}
 		}
 
 		for (i=0; i<WIDTH; i++) {
@@ -224,7 +168,6 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 
 		draw_waveform(&ctx);
 //		GUI_MEMDEV_Draw(&Rect, &draw_waveform, &ctx, 0, 0);
-#endif
 	}
 }
 

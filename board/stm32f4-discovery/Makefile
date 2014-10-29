@@ -22,14 +22,15 @@ tmp_objs  = main.o \
 		stm32f429i_discovery_sdram.o \
 		stm32f429i_discovery_lcd.o \
 		isr.o \
-		task_mpu6050.o \
 		GUIConf.o \
 		LCDConf.o \
+		task_powerbox.o \
 		GUI_X.o
 
+#		task_wave.o \
+#		task_mpu6050.o \
 #		usb_bsp.o \
 #		task_flash.o \
-#		task_pulse.o \
 #		task_asr.o \
 #		task_mpu6050.o \
 #		task_pulse.o \

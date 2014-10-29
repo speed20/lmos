@@ -21,14 +21,13 @@
 #ifndef _INV_MPU_H_
 #define _INV_MPU_H_
 
-#define EMPL_NO_64BIT
-
 #define INV_X_GYRO      (0x40)
 #define INV_Y_GYRO      (0x20)
 #define INV_Z_GYRO      (0x10)
 #define INV_XYZ_GYRO    (INV_X_GYRO | INV_Y_GYRO | INV_Z_GYRO)
 #define INV_XYZ_ACCEL   (0x08)
 #define INV_XYZ_COMPASS (0x01)
+
 struct int_param_s {
 #if defined EMPL_TARGET_MSP430 || defined MOTION_DRIVER_TARGET_MSP430
     void (*cb)(void);
@@ -39,8 +38,6 @@ struct int_param_s {
     unsigned long pin;
     void (*cb)(volatile void*);
     void *arg;
-#elif defined EMPL_TARGET_LINUX
-	unsigned int pin;
 #endif
 };
 
@@ -99,7 +96,11 @@ int mpu_configure_fifo(unsigned char sensors);
 int mpu_get_power_state(unsigned char *power_on);
 int mpu_set_sensors(unsigned char sensors);
 
-int mpu_set_accel_bias(const long *accel_bias);
+int mpu_read_6500_accel_bias(long *accel_bias);
+int mpu_set_gyro_bias_reg(long * gyro_bias);
+int mpu_set_accel_bias_6500_reg(const long *accel_bias);
+int mpu_read_6050_accel_bias(long *accel_bias);
+int mpu_set_accel_bias_6050_reg(const long *accel_bias);
 
 /* Data getter/setter APIs */
 int mpu_get_gyro_reg(short *data, unsigned long *timestamp);
@@ -124,6 +125,7 @@ int mpu_load_firmware(unsigned short length, const unsigned char *firmware,
 int mpu_reg_dump(void);
 int mpu_read_reg(unsigned char reg, unsigned char *data);
 int mpu_run_self_test(long *gyro, long *accel);
+int mpu_run_6500_self_test(long *gyro, long *accel, unsigned char debug);
 int mpu_register_tap_cb(void (*func)(unsigned char, unsigned char));
 
 #endif  /* #ifndef _INV_MPU_H_ */

@@ -32,8 +32,29 @@
  * delay_ms(unsigned long num_ms)
  * get_ms(unsigned long *count)
  */
+#define MOTION_DRIVER_TARGET_STM32
+#if defined MOTION_DRIVER_TARGET_STM32
+#include "hmc588xx/hmc5883l.h"
+#define i2c_write   mpu6050_write_reg
+#define i2c_read    mpu6050_read_reg
+#define delay_ms(x) vTaskDelay(x)
+#define get_ms      
+#define min(a,b) ((a<b)?a:b)
+static inline int reg_int_cb(struct int_param_s *int_param)
+{
+}
+#define log_i(...)     do {} while (0)
+#define log_e(...)     do {} while (0)
+#else
+#error  Gyro driver is missing the system layer implementations.
+#endif
 
-#define delay_ms(x)    Delay(x*1000)
+#define MPU9150
+
+#if !defined MPU6050 && !defined MPU9150 && !defined MPU6500 && !defined MPU9250
+#error  Which gyro are you using? Define MPUxxxx in your compiler options.
+#endif
+
 
 /* These defines are copied from dmpDefaultMPU6050.c in the general MPL
  * releases. These defines may change for each DMP image, so be sure to modify
@@ -1282,10 +1303,6 @@ int dmp_read_fifo(short *gyro, short *accel, long *quat,
         accel[2] = ((short)fifo_data[ii+4] << 8) | fifo_data[ii+5];
         ii += 6;
         sensors[0] |= INV_XYZ_ACCEL;
-        
-#ifdef I2C_DEBUG
-         serial_println("\rrawAccel:   X: %d Y: %d Z: %d   \n", accel[0], accel[1], accel[2]);
-#endif
     }
 
     if (dmp.feature_mask & DMP_FEATURE_SEND_ANY_GYRO) {

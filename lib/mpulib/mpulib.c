@@ -75,43 +75,35 @@ int mpulib_init(int sample_rate, int mix_factor)
 		serial_println("mpu_init() failed");
 		return -1;
 	}
-
 	if (mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS)) {
 		serial_println("mpu_set_sensors() failed");
 		return -1;
 	}
-
 	if (mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL)) {
 		serial_println("mpu_configure_fifo() failed");
 		return -1;
 	}
-
 	if (mpu_set_sample_rate(sample_rate)) {
 		serial_println("mpu_set_sample_rate() failed");
 		return -1;
 	}
-
 	if (mpu_set_compass_sample_rate(sample_rate)) {
 		serial_println("mpu_set_compass_sample_rate() failed");
 		return -1;
 	}
-
 	if (dmp_load_motion_driver_firmware()) {
 		serial_println("dmp_load_motion_driver_firmware() failed");
 		return -1;
 	}
-
 	if (dmp_set_orientation(inv_orientation_matrix_to_scalar(gyro_orientation))) {
 		serial_println("dmp_set_orientation() failed");
 		return -1;
 	}
-
   	if (dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL 
 						| DMP_FEATURE_SEND_CAL_GYRO | DMP_FEATURE_GYRO_CAL)) {
 		serial_println("dmp_enable_feature() failed");
 		return -1;
 	}
-
 	if (dmp_set_fifo_rate(sample_rate)) {
 		serial_println("dmp_set_fifo_rate() failed");
 		return -1;
@@ -122,10 +114,7 @@ int mpulib_init(int sample_rate, int mix_factor)
 		return -1;
 	}
 
-//	set_calibration(1);
-
 	serial_println("IMU Initialise done\n");
-
 	return 0;
 }
 
@@ -170,8 +159,6 @@ void mpulib_set_accel_cal(caldata_t *cal)
 		for (i = 0; i < 3; i++)
 			serial_println("%d : %d", accel_cal_data.range[i], accel_cal_data.offset[i]);
 	}
-
-	mpu_set_accel_bias(bias);
 
 	use_accel_cal = 1;
 }
