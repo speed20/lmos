@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V8.0.0 - Copyright (C) 2014 Real Time Engineers Ltd.
+    FreeRTOS V8.1.2 - Copyright (C) 2014 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -24,10 +24,10 @@
     the terms of the GNU General Public License (version 2) as published by the
     Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
 
-    >>! NOTE: The modification to the GPL is included to allow you to distribute
-    >>! a combined work that includes FreeRTOS without being obliged to provide
-    >>! the source code for proprietary components outside of the FreeRTOS
-    >>! kernel.
+    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
+    >>!   distribute a combined work that includes FreeRTOS without being   !<<
+    >>!   obliged to provide the source code for proprietary components     !<<
+    >>!   outside of the FreeRTOS kernel.                                   !<<
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -123,7 +123,7 @@ this value. */
 
 /* In all GICs 255 can be written to the priority mask register to unmask all
 (but the lowest) interrupt priority. */
-#define portUNMASK_VALUE				( 0xFF )
+#define portUNMASK_VALUE				( 0xFFUL )
 
 /* Tasks are not created with a floating point context, but can be given a
 floating point context after they have been created.  A variable is stored as
@@ -166,6 +166,11 @@ mode. */
  */
 extern void vPortRestoreTaskContext( void );
 
+/*
+ * Used to catch tasks that attempt to return from their implementing function.
+ */
+static void prvTaskExitError( void );
+
 /*-----------------------------------------------------------*/
 
 /* A variable is used to keep track of the critical section nesting.  This
@@ -175,8 +180,8 @@ the scheduler starts.  As it is stored as part of the task context it will
 automatically be set to 0 when the first task is started. */
 volatile uint32_t ulCriticalNesting = 9999UL;
 
-/* Saved as part of the task context.  If ulPortTaskHasFPUContext is non-zero then
-a floating point context must be saved and restored for the task. */
+/* Saved as part of the task context.  If ulPortTaskHasFPUContext is non-zero
+then a floating point context must be saved and restored for the task. */
 uint32_t ulPortTaskHasFPUContext = pdFALSE;
 
 /* Set to 1 to pend a context switch from an ISR. */
@@ -221,7 +226,7 @@ StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t px
 	pxTopOfStack--;
 
 	/* Next all the registers other than the stack pointer. */
-	*pxTopOfStack = ( StackType_t ) 0x00000000;	/* R14 */
+	*pxTopOfStack = ( StackType_t ) prvTaskExitError;	/* R14 */
 	pxTopOfStack--;
 	*pxTopOfStack = ( StackType_t ) 0x12121212;	/* R12 */
 	pxTopOfStack--;
@@ -261,6 +266,20 @@ StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t px
 	*pxTopOfStack = portNO_FLOATING_POINT_CONTEXT;
 
 	return pxTopOfStack;
+}
+/*-----------------------------------------------------------*/
+
+static void prvTaskExitError( void )
+{
+	/* A function that implements a task must not exit or attempt to return to
+	its caller as there is nothing to return to.  If a task wants to exit it
+	should instead call vTaskDelete( NULL ).
+
+	Artificially force an assert() to be triggered if configASSERT() is
+	defined, then stop here so application writers can catch the error. */
+	configASSERT( ulPortInterruptNesting == ~0UL );
+	portDISABLE_INTERRUPTS();
+	for( ;; );
 }
 /*-----------------------------------------------------------*/
 
@@ -315,6 +334,16 @@ void vPortEnterCritical( void )
 	directly.  Increment ulCriticalNesting to keep a count of how many times
 	portENTER_CRITICAL() has been called. */
 	ulCriticalNesting++;
+	
+	/* This is not the interrupt safe version of the enter critical function so
+	assert() if it is being called from an interrupt context.  Only API 
+	functions that end in "FromISR" can be used in an interrupt.  Only assert if
+	the critical nesting count is 1 to protect against recursive calls if the
+	assert function also uses a critical section. */
+	if( ulCriticalNesting == 1 )
+	{
+		configASSERT( ulPortInterruptNesting == 0 );
+	}
 }
 /*-----------------------------------------------------------*/
 
@@ -344,7 +373,7 @@ void FreeRTOS_Tick_Handler( void )
 	handler runs at the lowest priority, so interrupts cannot already be masked,
 	so there is no need to save and restore the current mask value. */
 	__disable_irq();
-	portICCPMR_PRIORITY_MASK_REGISTER = ( configMAX_API_CALL_INTERRUPT_PRIORITY << portPRIORITY_SHIFT );
+	portICCPMR_PRIORITY_MASK_REGISTER = ( uint32_t ) ( configMAX_API_CALL_INTERRUPT_PRIORITY << portPRIORITY_SHIFT );
 	__asm(	"DSB		\n"
 			"ISB		\n" );
 	__enable_irq();
@@ -388,7 +417,7 @@ uint32_t ulPortSetInterruptMask( void )
 uint32_t ulReturn;
 
 	__disable_irq();
-	if( portICCPMR_PRIORITY_MASK_REGISTER == ( configMAX_API_CALL_INTERRUPT_PRIORITY << portPRIORITY_SHIFT ) )
+	if( portICCPMR_PRIORITY_MASK_REGISTER == ( uint32_t ) ( configMAX_API_CALL_INTERRUPT_PRIORITY << portPRIORITY_SHIFT ) )
 	{
 		/* Interrupts were already masked. */
 		ulReturn = pdTRUE;
@@ -396,7 +425,7 @@ uint32_t ulReturn;
 	else
 	{
 		ulReturn = pdFALSE;
-		portICCPMR_PRIORITY_MASK_REGISTER = ( configMAX_API_CALL_INTERRUPT_PRIORITY << portPRIORITY_SHIFT );
+		portICCPMR_PRIORITY_MASK_REGISTER = ( uint32_t ) ( configMAX_API_CALL_INTERRUPT_PRIORITY << portPRIORITY_SHIFT );
 		__asm(	"DSB		\n"
 				"ISB		\n" );
 	}
@@ -428,7 +457,7 @@ uint32_t ulReturn;
 		The following links provide detailed information:
 		http://www.freertos.org/RTOS-Cortex-M3-M4.html
 		http://www.freertos.org/FAQHelp.html */
-		configASSERT( portICCRPR_RUNNING_PRIORITY_REGISTER >= ( configMAX_API_CALL_INTERRUPT_PRIORITY << portPRIORITY_SHIFT ) );
+		configASSERT( portICCRPR_RUNNING_PRIORITY_REGISTER >= ( uint32_t ) ( configMAX_API_CALL_INTERRUPT_PRIORITY << portPRIORITY_SHIFT ) );
 
 		/* Priority grouping:  The interrupt controller (GIC) allows the bits
 		that define each interrupt's priority to be split between bits that

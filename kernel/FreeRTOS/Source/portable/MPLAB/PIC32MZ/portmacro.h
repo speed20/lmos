@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V8.0.0 - Copyright (C) 2014 Real Time Engineers Ltd.
+    FreeRTOS V8.1.2 - Copyright (C) 2014 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -24,10 +24,10 @@
     the terms of the GNU General Public License (version 2) as published by the
     Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
 
-    >>! NOTE: The modification to the GPL is included to allow you to distribute
-    >>! a combined work that includes FreeRTOS without being obliged to provide
-    >>! the source code for proprietary components outside of the FreeRTOS
-    >>! kernel.
+    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
+    >>!   distribute a combined work that includes FreeRTOS without being   !<<
+    >>!   obliged to provide the source code for proprietary components     !<<
+    >>!   outside of the FreeRTOS kernel.                                   !<<
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -175,6 +175,10 @@ extern void vPortClearInterruptMaskFromISR( UBaseType_t );
 #define portSET_INTERRUPT_MASK_FROM_ISR() uxPortSetInterruptMaskFromISR()
 #define portCLEAR_INTERRUPT_MASK_FROM_ISR( uxSavedStatusRegister ) vPortClearInterruptMaskFromISR( uxSavedStatusRegister )
 
+#ifndef configUSE_PORT_OPTIMISED_TASK_SELECTION
+	#define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
+#endif
+
 #if configUSE_PORT_OPTIMISED_TASK_SELECTION == 1
 
 	/* Check the configuration. */
@@ -206,8 +210,8 @@ uint32_t ulCause;							\
 	_CP0_SET_CAUSE( ulCause );					\
 }
 
-#define portCURRENT_INTERRUPT_PRIORITY ( ( _CP0_GET_STATUS() & portALL_IPL_BITS ) >> portIPL_SHIFT )
-#define portASSERT_IF_INTERRUPT_PRIORITY_INVALID() configASSERT( portCURRENT_INTERRUPT_PRIORITY <= configMAX_SYSCALL_INTERRUPT_PRIORITY )
+extern volatile UBaseType_t uxInterruptNesting;
+#define portASSERT_IF_IN_ISR() configASSERT( uxInterruptNesting == 0 )
 
 #define portNOP()	__asm volatile ( "nop" )
 

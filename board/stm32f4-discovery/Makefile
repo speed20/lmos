@@ -24,7 +24,7 @@ tmp_objs  = main.o \
 		isr.o \
 		GUIConf.o \
 		LCDConf.o \
-		task_powerbox.o \
+		task_pulse.o \
 		GUI_X.o
 
 #		task_wave.o \
