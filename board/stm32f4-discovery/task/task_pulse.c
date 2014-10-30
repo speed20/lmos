@@ -61,7 +61,7 @@ void vStartCtrlTask(unsigned portBASE_TYPE uxPriority)
 
 void vStartPulseTask(unsigned portBASE_TYPE uxPriority)
 {
-	xTaskCreate(vPulseTask, (signed char *)"Pulse", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
+	xTaskCreate(vPulseTask, (signed char *)"Pulse", 2048, NULL, uxPriority, (TaskHandle_t *)NULL);
 }
 
 static portTASK_FUNCTION(vCtrlTask, pvParameters)
@@ -117,10 +117,15 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	uint8_t bit[MAX_BIT_BUF], start;
 	uint16_t index;
 
+	serial_println("start pulse task1");
 	LCD_Init();
+	serial_println("start pulse task1, %d", __LINE__);
 	LTDC_Cmd(ENABLE);
+	serial_println("start pulse task1, %d", __LINE__);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+	serial_println("start pulse task1, %d", __LINE__);
 	GUI_Init();
+	serial_println("start pulse task1, %d", __LINE__);
 //	GUI_SelectLayer(1);
 //	GUI_SetBkColor(GUI_TRANSPARENT);
 	GUI_SetPenSize(1);

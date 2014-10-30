@@ -24,16 +24,16 @@ tmp_objs  = main.o \
 		isr.o \
 		GUIConf.o \
 		LCDConf.o \
-		task_powerbox.o \
-		GUI_X.o
+		GUI_X.o \
+		task_pulse.o
 
-#		task_wave.o \
+#		task_flash.o \
+#		task_pmon.o
+#		task_powerbox.o \
 #		task_mpu6050.o \
 #		usb_bsp.o \
-#		task_flash.o \
 #		task_asr.o \
 #		task_mpu6050.o \
-#		task_pulse.o \
 		arm_sin_f32.o \
 		task_ir.o
 

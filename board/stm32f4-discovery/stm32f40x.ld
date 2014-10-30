@@ -49,7 +49,6 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH
 
-
    .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
     .ARM : {
     __exidx_start = .;
@@ -78,6 +77,14 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
+  .driver_init :
+  {
+    . = ALIGN(4);
+	__init_start = .;
+	*(.initcall6.init)
+	__init_end = .;
+  } >FLASH
+
   /* used by the startup to initialize data */
   _sidata = .;
 
@@ -102,7 +109,6 @@ SECTIONS
     __bss_start__ = _sbss;
     *(.bss)
     *(.bss*)
-    *(COMMON)
 
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */

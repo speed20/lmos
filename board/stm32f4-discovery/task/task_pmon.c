@@ -14,4 +14,6 @@ void vStartASRTestTask(unsigned portBASE_TYPE uxPriority)
 
 static portTASK_FUNCTION(vFlashPmonTask, pvParameters)
 {
+	for (;;) {
+	}
 }

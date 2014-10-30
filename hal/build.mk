@@ -16,6 +16,9 @@ CONFIG_HAL_spi=n
 CONFIG_HAL_time=y
 CONFIG_HAL_usb=n
 
+VPATH += $(hal_local_path)/core
+hal_src += $(call all_c_files,$(hal_local_path)/core)
+
 ifeq ($(CONFIG_HAL_i2c), y)
 VPATH += $(hal_local_path)/i2c
 hal_src += $(call all_c_files,$(hal_local_path)/i2c)

@@ -16,6 +16,7 @@
 #include <display/oled.h>
 #include "delay.h"
 #include "display.h"
+#include "init.h"
 //#include "arm_math.h"
 //#include "usb_core.h"
 
@@ -42,15 +43,17 @@ static void prvCheckTimerCallback( TimeOut_t xTimer );
 int main(void)
 {
 	prvSetupHardware();
+	model_init();
 //	USBConfig();
 
-	vStartPowerboxTask(mainBLOCK_Q_PRIORITY);
+//	vStartPowerboxTask(mainBLOCK_Q_PRIORITY);
 //	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
-//	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
-//	vStartPulseTask(mainFLASH_TASK_PRIORITY);
+	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
+	vStartPulseTask(mainFLASH_TASK_PRIORITY);
 //	vStartMPUTasks(mainFLOP_TASK_PRIORITY+1);
-	//vStartIRTestTask(mainIR_TASK_PRIORITY);
-	//vStartASRTestTask(mainIR_TASK_PRIORITY);
+//	vStartIRTestTask(mainIR_TASK_PRIORITY);
+//	vStartASRTestTask(mainIR_TASK_PRIORITY);
+//	vStartFlashPmonTask(mainIR_TASK_PRIORITY);
 
 	serial_println("system ready to run...");
 
