@@ -59,10 +59,8 @@ static portTASK_FUNCTION(vLEDFlashTask, pvParameters)
 
 	for(;;)
 	{
-//		serial_println("hello2");
 		/* Delay for half the flash period then turn the LED on. */
 		vTaskDelayUntil( &xLastFlashTime, xFlashRate );
 		vParTestToggleLED( uxLED );
-//		serial_println("hello3");
 	}
 } /*lint !e715 !e818 !e830 Function definition must be standard for task creation. */

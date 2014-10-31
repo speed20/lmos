@@ -227,9 +227,9 @@ void hmc5883l_getHeading(int16_t *x, int16_t *y, int16_t *z) {
 		*x = (((int16_t)buffer[0]) << 8) | buffer[1];
 		*y = (((int16_t)buffer[4]) << 8) | buffer[5];
 		*z = (((int16_t)buffer[2]) << 8) | buffer[3];
-		serial_println("%d %d %d", *x, *y, *z);
+		printk("%d %d %d", *x, *y, *z);
 	} else {
-		serial_println("read hmc error");
+		printk("read hmc error");
 	}
 }
 /** Get X-axis heading measurement.
@@ -347,6 +347,6 @@ uint8_t hmc5883l_calibrate(int16_t *sense) {
 
 	sense[2] = 256;
 
-	serial_println("x: %d y: %d", x, y);
+	printk("x: %d y: %d", x, y);
 	return 0;
 }

@@ -2561,7 +2561,7 @@ void mpu6050_setFIFOByte(uint8_t data) {
  * @see MPU6050_WHO_AM_I_LENGTH
  */
 uint8_t mpu6050_getDeviceID() {
-	serial_print("device id: 0x%02x\r\n", i2c_read_bits(&mpu6050, MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH));
+	printk("device id: 0x%02x\r\n", i2c_read_bits(&mpu6050, MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH));
 	return i2c_read_bits(&mpu6050, MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH);
 }
 /** Set Device ID.
@@ -2993,7 +2993,7 @@ int mpu6050_write_reg(uint8_t slave_addr, uint8_t reg_addr, uint32_t length, uin
 
 	ret = i2c_write_bytes(&dev, reg_addr, length, data);
 	if (ret != 0) {
-		serial_println("i2c write bus %d addr 0x%02x error with %d", mpu6050.bus, slave_addr, ret);
+		printk("i2c write bus %d addr 0x%02x error with %d", mpu6050.bus, slave_addr, ret);
 	}
 
 	return ret;
@@ -3006,7 +3006,7 @@ int mpu6050_read_reg(uint8_t slave_addr, uint8_t reg_addr, uint32_t length, uint
 
 	ret = i2c_read_bytes(&dev, reg_addr, length, data);
 	if (ret < 0) {
-		serial_println("i2c read error with %d", ret);
+		printk("i2c read error with %d", ret);
 	}
 
 	return ret;

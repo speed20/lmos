@@ -206,7 +206,7 @@ int8_t i2c_write_bit(i2c_dev *dev, uint8_t addr, uint8_t bit, uint8_t val)
 	byte = i2c_read_byte(dev, addr) & mask;
 	byte |= (val << bit);
 
-	//serial_print("bit: %d mask: 0x%02x value: 0x%02x 0x%02x\r\n", bit, mask, val, byte);
+	//printk("bit: %d mask: 0x%02x value: 0x%02x 0x%02x\r\n", bit, mask, val, byte);
 
 	return i2c_write_byte(dev, addr, byte);
 }
@@ -216,19 +216,19 @@ int8_t i2c_write_bits(i2c_dev *dev, uint8_t addr, uint8_t bit, uint8_t len, uint
 	uint8_t byte, mask;
 
 	mask = 0xff << (7 - bit); 
-//	serial_print("1 mask: 0x%02x\r\n", mask);
+//	printk("1 mask: 0x%02x\r\n", mask);
 	mask >>= (8 - len); 
-//	serial_print("2 mask: 0x%02x\r\n", mask);
+//	printk("2 mask: 0x%02x\r\n", mask);
 	mask <<= (bit - len + 1);
-//	serial_print("3 mask: 0x%02x\r\n", mask);
+//	printk("3 mask: 0x%02x\r\n", mask);
 	mask = ~mask;
 
-//	serial_print("bit %d len %d mask: 0x%02x\r\n", bit, len, mask);
+//	printk("bit %d len %d mask: 0x%02x\r\n", bit, len, mask);
 
 	byte = i2c_read_byte(dev, addr) & mask;
 	byte |= (val << (bit - len +1));
 
-//	serial_print("4 byte: 0x%02x\r\n", byte);
+//	printk("4 byte: 0x%02x\r\n", byte);
 
 
 	return i2c_write_byte(dev, addr, byte);

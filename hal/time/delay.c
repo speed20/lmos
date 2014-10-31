@@ -21,7 +21,7 @@ void Delay(uint32_t usec)
 		period = usec / 100;
 		prescaler = 18000;
 	} else {
-		serial_print("usec too big\r\n");
+		printk("usec overflow\n");
 		return ;
 	}
 

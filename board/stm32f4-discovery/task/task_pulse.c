@@ -91,7 +91,7 @@ static portTASK_FUNCTION(vCtrlTask, pvParameters)
 				ADC_Cmd(ADC1, ENABLE);
 				break;
 			default:
-				serial_println("=:increase\n\r-:decrease\n\r1:reset\n\r");
+				printk("=:increase\n-:decrease\n1:reset\n");
 		}
 
 		if (flag) {
@@ -131,7 +131,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	adc_sample_freq_set(sample_freq);
 	ADC1_CH6_DMA_Config();
 //	ADC_SoftwareStartConv(ADC1);
-	serial_println("start pulse task");
+	printk("start pulse task\n");
 
 	start = 8;
 	index = 0;
@@ -166,7 +166,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 						bit[index++] = 0;
 						tx = i;
 					} else if (diff < (period - tolerance) / 2 || diff > (period + tolerance) / 2){
-						serial_println("0 error");
+						printk("0 error\n");
 					}
 				}
 
@@ -182,7 +182,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 						bit[index++] = 1;
 						tx = i;
 					} else if (diff < (period - tolerance) / 2 || diff > (period + tolerance) / 2){
-						serial_println("1 error");
+						printk("1 error\n");
 					}
 				}
 
@@ -202,7 +202,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 						ctx.byte[ctx.byte_count] |= bit[j] << j%8;
 
 						if (j%8 == 7) {
-//							serial_print("%c", ctx.byte[ctx.byte_count]);
+//							printk("%c", ctx.byte[ctx.byte_count]);
 							ctx.byte_count++;
 						}
 					}
@@ -323,7 +323,7 @@ void ADC1_CH6_DMA_Config(void)
 /* duty = x% */
 void set_pcm_out_freq(uint32_t freq, uint32_t duty)
 {
-	serial_println("set pcm out freq");
+	printk("set pcm out freq\n");
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -376,7 +376,7 @@ void adc_sample_freq_set(uint32_t freq)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	uint16_t prescaler, period;
 
-	serial_println("set sample freq to %dhz", freq);
+	printk("set sample freq to %dhz\n", freq);
 	prescaler = 45 - 1; // 2M
 	period = 90000000 / (prescaler + 1) / freq - 1;
 

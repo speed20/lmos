@@ -34,7 +34,7 @@ static portTASK_FUNCTION(vIRTestTask, pvParameters)
 	flag = 0;
 
 	if (xIRQueue == 0) {
-		serial_print("queue error\r\n");
+		printk("queue error\n");
 		while(1);
 	}
 
@@ -52,13 +52,13 @@ static portTASK_FUNCTION(vIRTestTask, pvParameters)
 		} else {
 			if (flag) {
 				/* report wave data */
-				serial_print("total bits: %d\r\n", data.counter);
+				printk("total bits: %d\n", data.counter);
 				tmp = data.init_level;
 				for (i=0; i<data.counter; i++) {
-					serial_print("%c:%d ", tmp == 0 ? 'L' : 'H', data.ms[i]);
+					printk("%c:%d\n", tmp == 0 ? 'L' : 'H', data.ms[i]);
 					tmp = ~tmp & 0x01;
 				}
-				serial_print("\r\n");
+				printk("\n");
 				flag = 0;
 				portENTER_CRITICAL();
 				start = 1;

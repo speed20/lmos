@@ -119,7 +119,7 @@ void oled_write_byte(uint8_t data, uint8_t cmd)
 	timeout = 0x1000;
 	while (SPI_I2S_GetFlagStatus(OLED_SPI, SPI_I2S_FLAG_TXE) == RESET) {
 		if((timeout --) == 0) {
-			serial_println("lcd write timeout");
+			printk("lcd write timeout");
 			break;
 		}
 	}
@@ -129,7 +129,7 @@ void oled_write_byte(uint8_t data, uint8_t cmd)
 	timeout = 0x1000;
 	while (SPI_I2S_GetFlagStatus(OLED_SPI, SPI_I2S_FLAG_BSY) != RESET) {
 		if((timeout --) == 0) {
-			serial_println("lcd write timeout");
+			printk("lcd write timeout");
 			break;
 		}
 	}
@@ -141,9 +141,9 @@ void oled_write_byte(uint8_t data, uint8_t cmd)
 #if 0
 	timeout = 0x1000;
 	while (SPI_I2S_GetFlagStatus(OLED_SPI, SPI_I2S_FLAG_BSY) != RESET) {
-//		serial_println("busy");
+//		printk("busy");
 		if((timeout--) == 0) {
-			serial_println("lcd write timeout");
+			printk("lcd write timeout");
 			break;
 		}
 	}

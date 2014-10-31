@@ -115,7 +115,7 @@ static portTASK_FUNCTION(vMPUTask, pvParameters)
 	xSemaphoreTake(mpu6050Semaphore, 0);
 
 	if (mpulib_init(100, 5) < 0) {
-		serial_println("mpulib init failed");
+		printk("mpulib init failed\n");
 		for (;;);
 	}
 
@@ -129,10 +129,10 @@ static portTASK_FUNCTION(vMPUTask, pvParameters)
 		gyro[i] = (long)(gyro[i] >> 16);
 	}
 
-	serial_println("gyro bias: %d %d %d status: 0x%02x", \
+	printk("gyro bias: %d %d %d status: 0x%02x\n", \
 			(int16_t)gyro[0], (int16_t)gyro[1], (int16_t)gyro[2], status);
 
-	serial_println("accel bias: %d %d %d status: 0x%02x", \
+	printk("accel bias: %d %d %d status: 0x%02x\n", \
 			(int16_t)accel[0], (int16_t)accel[1], (int16_t)accel[2], status);
 
 	mpu_set_gyro_bias_reg(gyro);
@@ -171,7 +171,7 @@ static portTASK_FUNCTION(vMPUTask, pvParameters)
 			gyro[1][0] = mpu.rawGyro[VEC3_Y];
 			gyro[2][0] = mpu.rawGyro[VEC3_Z];
 
-//			serial_println("%d %d", mpu.rawAccel[0], mpu.rawAccel[1]);
+//			printk("%d %d", mpu.rawAccel[0], mpu.rawAccel[1]);
 
 #if 0
 			vx = (float)mpu.rawAccel[0] / 100.0f;
@@ -188,7 +188,6 @@ static portTASK_FUNCTION(vMPUTask, pvParameters)
 				ctx.nr_point++;
 
 			if (count++ % 10 == 0) {
-//				serial_println(buf);
 				mpu_draw_waveform(&ctx);
 			}
 		}

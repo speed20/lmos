@@ -50,16 +50,16 @@ int main(void)
 //	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
 	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
 	vStartPulseTask(mainFLASH_TASK_PRIORITY);
-	vStartPmonTask(mainIR_TASK_PRIORITY);
+//	vStartPmonTask(mainIR_TASK_PRIORITY);
 //	vStartDACTask(mainFLASH_TASK_PRIORITY);
 //	vStartMPUTasks(mainFLOP_TASK_PRIORITY+1);
 //	vStartIRTestTask(mainIR_TASK_PRIORITY);
 //	vStartASRTestTask(mainIR_TASK_PRIORITY);
 
-	serial_println("system ready to run...");
+	printk("system ready to run...\n");
 
 	vTaskStartScheduler();
-	serial_print("fatal error!\r\n");
+	printk("fatal error!\r\n");
 	for(;;);	
 }
 /*-----------------------------------------------------------*/

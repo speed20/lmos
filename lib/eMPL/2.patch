@@ -17,9 +17,9 @@ index 54525f0..ca0792b 100644
  	mpu6050_config();
  
 -	mpu_run_self_test(gyro_bias, accel_bias);
--	serial_println("accel bias: %d %d %d", accel_bias[0], accel_bias[1], accel_bias[2]);
+-	printk("accel bias: %d %d %d", accel_bias[0], accel_bias[1], accel_bias[2]);
 +	status = mpu_run_self_test(gyro_bias, accel_bias);
-+	serial_println("accel bias: %d %d %d status: 0x%02x", \
++	printk("accel bias: %d %d %d status: 0x%02x", \
 +			(int16_t)accel_bias[0], (int16_t)accel_bias[1], (int16_t)accel_bias[2], status);
  	xSemaphoreTake(mpu6050Semaphore, 0);
  
@@ -75,9 +75,9 @@ index 55aa641..319d630 100644
 -
 -//#define DEBUG_MPU
 -#ifdef DEBUG_MPU
--#define log_i serial_println
--#define log_e serial_println
--#define log_d serial_println
+-#define log_i printk
+-#define log_e printk
+-#define log_d printk
 -#else
 -#define log_i(...)     do {} while (0)
 -#define log_e(...)     do {} while (0)
@@ -286,7 +286,7 @@ index 55aa641..319d630 100644
      /* Reset device. */
      data[0] = BIT_RESET;
 -    if (i2c_write(st.hw->addr, st.reg->pwr_mgmt_1, 1, data)) {
--		serial_println("failed 1");
+-		printk("failed 1");
 +    if (i2c_write(st.hw->addr, st.reg->pwr_mgmt_1, 1, data))
          return -1;
 -	}
@@ -295,7 +295,7 @@ index 55aa641..319d630 100644
      /* Wake up chip. */
      data[0] = 0x00;
 -    if (i2c_write(st.hw->addr, st.reg->pwr_mgmt_1, 1, data)) {
--		serial_println("failed 2");
+-		printk("failed 2");
 +    if (i2c_write(st.hw->addr, st.reg->pwr_mgmt_1, 1, data))
          return -1;
 -	}
@@ -303,7 +303,7 @@ index 55aa641..319d630 100644
 -#if defined MPU6050
 -    /* Check product revision. */
 -    if (i2c_read(st.hw->addr, st.reg->accel_offs, 6, data)) {
--		serial_println("failed 3");
+-		printk("failed 3");
 -        return -1;
 -	}
 -    rev = ((data[5] & 0x01) << 2) | ((data[3] & 0x01) << 1) |
@@ -1484,7 +1484,7 @@ index 55aa641..319d630 100644
 -    return 0;
 -
 -#elif defined HMC5883L_SECONDARY
--	serial_println("enter setup compass");
+-	printk("enter setup compass");
 -    unsigned char data[4];
 -
 -    mpu_set_bypass(1);
@@ -1849,7 +1849,7 @@ index 9f21c37..dbbba19 100644
          sensors[0] |= INV_XYZ_ACCEL;
 -        
 -#ifdef I2C_DEBUG
--         serial_println("\rrawAccel:   X: %d Y: %d Z: %d   \n", accel[0], accel[1], accel[2]);
+-         printk("\rrawAccel:   X: %d Y: %d Z: %d   \n", accel[0], accel[1], accel[2]);
 -#endif
      }
  
@@ -1878,7 +1878,7 @@ index fad509d..11e179b 100644
 --- a/lib/mpulib/mpulib.c
 +++ b/lib/mpulib/mpulib.c
 @@ -171,8 +171,6 @@ void mpulib_set_accel_cal(caldata_t *cal)
- 			serial_println("%d : %d", accel_cal_data.range[i], accel_cal_data.offset[i]);
+ 			printk("%d : %d", accel_cal_data.range[i], accel_cal_data.offset[i]);
  	}
  
 -	mpu_set_accel_bias(bias);

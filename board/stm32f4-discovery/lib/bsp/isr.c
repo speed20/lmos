@@ -105,7 +105,7 @@ void TIM5_IRQHandler(void)
 			taskYIELD();
 		}
 	} else {
-		serial_print("full\r\n");
+		printk("full\r\n");
 	}
 }
 
@@ -113,7 +113,7 @@ void TIM5_IRQHandler(void)
 void EXTI0_IRQHandler(void)
 //void EXTI15_10_IRQHandler(void)
 {
-	serial_print("button pressed\r\n");
+	printk("button pressed\n");
 
 	EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
 }

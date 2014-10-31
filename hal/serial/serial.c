@@ -31,11 +31,11 @@ struct io_map uart_io_map[] = {
 	/* usart 1 */
 	{
 		"usart1_tx", GPIO_Pin_9, GPIO_PinSource9, GPIOA, AHB1, RCC_AHB1Periph_GPIOA, \
-		GPIO_AF_USART1, GPIO_PuPd_UP, GPIO_OType_PP, GPIO_Speed_100MHz, GPIO_Mode_AF
+		GPIO_AF_USART1, GPIO_PuPd_UP, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AF
 	},
 	{
 		"usart1_rx", GPIO_Pin_10, GPIO_PinSource10, GPIOA, AHB1, RCC_AHB1Periph_GPIOA, \
-		GPIO_AF_USART1, GPIO_PuPd_UP, GPIO_OType_PP, GPIO_Speed_100MHz, GPIO_Mode_AF
+		GPIO_AF_USART1, GPIO_PuPd_UP, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AF
 	},
 	/* usart 2 */
 	{
@@ -101,16 +101,15 @@ int serial_io_init(bus_t bus)
 			RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART5, ENABLE);
 			break;
 		default:
-			serial_println("error, serial has no this port!\n");
 			return -1;
 	}
 
 	return 0;
 }
 
-int serial_enable(bus_t bus, void *arg)
+int serial_enable(bus_t bus, void *priv)
 {
-	int baudrate = (int)arg;
+	int baudrate = (int)priv;
 	int minor = bus & 0x0f;
 	USART_InitTypeDef UartStructure;
 
@@ -162,7 +161,7 @@ int serial_read(uint8_t minor, uint8_t *buf, uint32_t len)
 	//	while (!rx_flag) ;
 		buf[i] = USART_ReceiveData(serial_port[minor]);
 //		rx_flag = 0;
-//		serial_println("recv: 0x%02x", buf[i]);
+//		printk("recv: 0x%02x", buf[i]);
 	}
 
 	return 0;
@@ -258,7 +257,7 @@ int serial_request_dma(bus_t bus)
 			DMA_ITConfig(DMA1_Stream3, DMA_IT_TC,ENABLE);              //DMA enable
 			break;
 		default:
-			serial_println("dma not supported for port %d\n", minor);
+			printk("dma not supported for port %d\n", minor);
 			return -1;
 	}
 		
@@ -334,6 +333,7 @@ struct hal_bus uart1 = {
 	.name = "uart1",
 	.use_dma = true,
 	.bus = BUS(UART, 0),
+	.priv = (int *)115200,
 	.io_init = serial_io_init,
 	.request_dma = serial_request_dma,
 	.request_irq = serial_request_irq,

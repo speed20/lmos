@@ -17,7 +17,7 @@ static uint8_t bt_port = -1;
 
 int Bt_Config(uint8_t port, uint32_t baudrate, unsigned char *pin, unsigned char *name)
 {
-	serial_println("\r\nbegin bt config");
+	printk("\r\nbegin bt config");
 
 	unsigned char buf[32], resp[32], index;
 	uint32_t len, i, n;
@@ -30,7 +30,7 @@ int Bt_Config(uint8_t port, uint32_t baudrate, unsigned char *pin, unsigned char
 		tmp[i] = ((volatile uint32_t *)BT_CONFIG_ADDR)[i];
 	}
 
-	serial_println("stored info: %d %s %s", bt_conf.baudrate, bt_conf.name, bt_conf.pin);
+	printk("stored info: %d %s %s", bt_conf.baudrate, bt_conf.name, bt_conf.pin);
 
 	/* Initialize serial port usart2 */
 	serial_init(port, baudrate);
@@ -41,7 +41,7 @@ int Bt_Config(uint8_t port, uint32_t baudrate, unsigned char *pin, unsigned char
 	serial_read(port, buf, 2);
 
 	if (strncmp(buf, "OK", 2) != 0) {
-		serial_println("failed with response: %s", buf);
+		printk("failed with response: %s", buf);
 		return -1;
 	}
 
@@ -85,12 +85,12 @@ int Bt_Config(uint8_t port, uint32_t baudrate, unsigned char *pin, unsigned char
 		serial_read(port, buf, n);
 
 		if (strncmp(buf, resp, n) != 0) {
-			serial_println("failed with response: %s", buf);
+			printk("failed with response: %s", buf);
 			return -1;
 		}
 
 		update = 1;
-		serial_println("baudrate %d", bt_conf.baudrate);
+		printk("baudrate %d", bt_conf.baudrate);
 	}
 
 	if (strcmp(bt_conf.name, name) != 0) {
@@ -102,7 +102,7 @@ int Bt_Config(uint8_t port, uint32_t baudrate, unsigned char *pin, unsigned char
 		serial_read(port, buf, 9);
 
 		if (strncmp(buf, "OKsetname", 9) != 0) {
-			serial_println("failed with response: %s", buf);
+			printk("failed with response: %s", buf);
 			return -1;
 		}
 		update = 1;
@@ -117,7 +117,7 @@ int Bt_Config(uint8_t port, uint32_t baudrate, unsigned char *pin, unsigned char
 		serial_read(port, buf, 8);
 
 		if (strncmp(buf, "OKsetPIN", 8) != 0) {
-			serial_println("failed with response: %s", buf);
+			printk("failed with response: %s", buf);
 			return -1;
 		}
 		update = 1;
@@ -140,7 +140,7 @@ int Bt_Config(uint8_t port, uint32_t baudrate, unsigned char *pin, unsigned char
 		FLASH_Lock();
 	}
 
-	serial_println("bt config ok");
+	printk("bt config ok");
 	return 0;
 }
 

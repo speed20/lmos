@@ -29,13 +29,13 @@ struct hal_bus {
 	int (*io_init)(bus_t bus);				/* used to do io init, pin map, config gpio, etc.*/
 	int (*request_dma)(bus_t bus);			/* if use_dma is true, use this function to request dma chnnal */
 	int (*request_irq)(bus_t bus);
-	int (*bus_enable)(bus_t bus, void *arg);
+	int (*bus_enable)(bus_t bus, void *priv);
 	int (*bus_cfg)(bus_t bus, void *cfg);
 	int (*xfer)(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir); /* do data transfer */
 };
 
 int hal_bus_register(struct hal_bus *hbus);
-int hal_bus_enable(bus_t bus, void *arg);
+int hal_bus_enable(bus_t bus, void *priv);
 int hal_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir);
 
 typedef int (*initcall_t)(void);

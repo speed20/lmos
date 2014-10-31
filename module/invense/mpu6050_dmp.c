@@ -10,10 +10,10 @@
 
 //#define DEBUG
 #ifdef DEBUG
-    #define DEBUG_PRINT serial_print
-    #define DEBUG_PRINTF serial_print
-    #define DEBUG_PRINTLN serial_print
-    #define DEBUG_PRINTLNF serial_print
+    #define DEBUG_PRINT printk
+    #define DEBUG_PRINTF printk
+    #define DEBUG_PRINTLN printk
+    #define DEBUG_PRINTLNF printk
 #else
     #define DEBUG_PRINT
     #define DEBUG_PRINTF

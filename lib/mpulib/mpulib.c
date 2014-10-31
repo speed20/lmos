@@ -69,52 +69,52 @@ int mpulib_init(int sample_rate, int mix_factor)
 
 	yaw_mixing_factor = mix_factor;
 
-	serial_println("Initializing IMU .");
+	printk("Initializing IMU .");
 
 	if (mpu_init(NULL)) {
-		serial_println("mpu_init() failed");
+		printk("mpu_init() failed");
 		return -1;
 	}
 	if (mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS)) {
-		serial_println("mpu_set_sensors() failed");
+		printk("mpu_set_sensors() failed");
 		return -1;
 	}
 	if (mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL)) {
-		serial_println("mpu_configure_fifo() failed");
+		printk("mpu_configure_fifo() failed");
 		return -1;
 	}
 	if (mpu_set_sample_rate(sample_rate)) {
-		serial_println("mpu_set_sample_rate() failed");
+		printk("mpu_set_sample_rate() failed");
 		return -1;
 	}
 	if (mpu_set_compass_sample_rate(sample_rate)) {
-		serial_println("mpu_set_compass_sample_rate() failed");
+		printk("mpu_set_compass_sample_rate() failed");
 		return -1;
 	}
 	if (dmp_load_motion_driver_firmware()) {
-		serial_println("dmp_load_motion_driver_firmware() failed");
+		printk("dmp_load_motion_driver_firmware() failed");
 		return -1;
 	}
 	if (dmp_set_orientation(inv_orientation_matrix_to_scalar(gyro_orientation))) {
-		serial_println("dmp_set_orientation() failed");
+		printk("dmp_set_orientation() failed");
 		return -1;
 	}
   	if (dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_SEND_RAW_ACCEL 
 						| DMP_FEATURE_SEND_CAL_GYRO | DMP_FEATURE_GYRO_CAL)) {
-		serial_println("dmp_enable_feature() failed");
+		printk("dmp_enable_feature() failed");
 		return -1;
 	}
 	if (dmp_set_fifo_rate(sample_rate)) {
-		serial_println("dmp_set_fifo_rate() failed");
+		printk("dmp_set_fifo_rate() failed");
 		return -1;
 	}
 
 	if (mpu_set_dmp_state(1)) {
-		serial_println("mpu_set_dmp_state(1) failed");
+		printk("mpu_set_dmp_state(1) failed");
 		return -1;
 	}
 
-	serial_println("IMU Initialise done\n");
+	printk("IMU Initialise done\n");
 	return 0;
 }
 
@@ -124,7 +124,7 @@ int mpulib_exit()
     
 	// turn off the DMP on exit 
 	if ((result = mpu_set_dmp_state(0)) != 0) {
-		serial_println("mpu_set_dmp_state(0) failed");
+		printk("mpu_set_dmp_state(0) failed");
         return result;
     }
 	// TODO: Should turn off the sensors too
@@ -154,10 +154,10 @@ void mpulib_set_accel_cal(caldata_t *cal)
 	}
 
 	if (debug_on) {
-		serial_println("accel cal (range : offset)");
+		printk("accel cal (range : offset)");
 
 		for (i = 0; i < 3; i++)
-			serial_println("%d : %d", accel_cal_data.range[i], accel_cal_data.offset[i]);
+			printk("%d : %d", accel_cal_data.range[i], accel_cal_data.offset[i]);
 	}
 
 	use_accel_cal = 1;
@@ -187,10 +187,10 @@ void mpulib_set_mag_cal(caldata_t *cal)
 	}
 
 	if (debug_on) {
-		serial_println("mag cal (range : offset)");
+		printk("mag cal (range : offset)");
 
 		for (i = 0; i < 3; i++)
-			serial_println("%d : %d", mag_cal_data.range[i], mag_cal_data.offset[i]);
+			printk("%d : %d", mag_cal_data.range[i], mag_cal_data.offset[i]);
 	}
 
 	use_mag_cal = 1;
@@ -203,14 +203,14 @@ int mpulib_read_dmp(mpudata_t *mpu)
     int i = 0;
 
 	if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
-		//serial_println("dmp_read_fifo() failed");
+		//printk("dmp_read_fifo() failed");
 		return -1;
 	}
 
 	while (more) {
 		// Fell behind, reading again
 		if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
-			serial_println("dmp_read_fifo():more failed");
+			printk("dmp_read_fifo():more failed");
 			return -1;
 		}
         i++;
@@ -218,7 +218,7 @@ int mpulib_read_dmp(mpudata_t *mpu)
     
     if (debug_on) {
         if (i) {
-            serial_println("Skipped reads from fifo:  %d ", i);
+            printk("Skipped reads from fifo:  %d ", i);
         }
     }
 	return 0;
@@ -227,7 +227,7 @@ int mpulib_read_dmp(mpudata_t *mpu)
 int mpulib_read_mag(mpudata_t *mpu)
 {
 	if (mpu_get_compass_reg(mpu->rawMag, &mpu->magTimestamp) < 0) {
-		serial_println("mpu_get_compass_reg() failed");
+		printk("mpu_get_compass_reg() failed");
 		return -1;
 	}
 
@@ -240,7 +240,7 @@ int mpulib_read(mpudata_t *mpu)
 	short intStatus;
 
 	if (mpu_get_int_status(&intStatus) < 0) {
-		serial_println("i2c error");
+		printk("i2c error");
 		return -1;
 	}                       // get the current MPU state
 
@@ -264,7 +264,7 @@ int data_ready()
 	short status = 0;
     
 	if (mpu_get_int_status(&status) < 0) {
-		serial_println("mpu_get_int_status() failed");
+		printk("mpu_get_int_status() failed");
 		return -1;
 	}
 
@@ -353,10 +353,10 @@ int data_fusion(mpudata_t *mpu)
 	tilt_compensate(magQuat, unfusedQuat);
 
 	newMagYaw = -atan2f(magQuat[QUAT_Y], magQuat[QUAT_X]);
-//	serial_println("mag yaw: %d", (int32_t)(newMagYaw * RAD_TO_DEGREE));
+//	printk("mag yaw: %d", (int32_t)(newMagYaw * RAD_TO_DEGREE));
 
 	if (newMagYaw != newMagYaw) {
-		serial_println("newMagYaw NAN");
+		printk("newMagYaw NAN");
 		return -1;
 	}
 

@@ -26,21 +26,20 @@ SemaphoreHandle_t spi_rx_sem = NULL;
 
 int spi_io_init(bus_t bus)
 {
-	serial_println("%s %d", __func__, __LINE__);
 	int ret = 0;
+	int major = bus & 0xf0 >> 4;
+	int minor = bus & 0x0f;
 
     EXTI_InitTypeDef EXTI_InitStructure;
     NVIC_InitTypeDef NVIC_InitStructure;
 
-	if (((bus&0xf0) >> 4) != SPI)
+	if (major != SPI)
 		return -1;
 
-	serial_println("%s %d", __func__, __LINE__);
-
-	switch(bus&0x0f) {
+	switch(minor) {
 		case 0:
 			{
-				serial_println("not implement");
+				printk("spi%d not defined\n", minor+1);
 				ret = -1;
 				break;
 			}
@@ -50,24 +49,22 @@ int spi_io_init(bus_t bus)
 				for (i=0; i<3; i++) {
 					io_request(&spi2_io_map[i]);
 				}
-				serial_println("%s %d", __func__, __LINE__);
 				break;
 			}
 		case 2:
 			{
-				serial_println("not implement");
+				printk("spi%d not defined\n", minor+1);
 				ret = -1;
 				break;
 			}
 	}
 
-	serial_println("%s %d", __func__, __LINE__);
 	return ret;
 }
 
 int spi_request_dma(bus_t bus)
 {
-	serial_println("spi request dma, bus: %d", bus);
+	printk("spi request dma, bus: %d", bus);
 }
 
 int spi_bus_enable(bus_t bus, void *arg)
@@ -102,7 +99,7 @@ int spi_bus_cfg(bus_t bus, void *cfg)
 
 int spi_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir)
 {
-	serial_println("%s %d bytes\n", dir == IN ? "receive" : "send", len);
+	printk("%s %d bytes\n", dir == IN ? "receive" : "send", len);
     uint32_t timeout;
     uint8_t val;
 	int i;
@@ -111,7 +108,7 @@ int spi_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir
 		timeout = 0x1000;
 		while (SPI_I2S_GetFlagStatus(spi_bus[bus&0xf], SPI_I2S_FLAG_TXE) == RESET) {
 			if(timeout-- == 0) {
-				serial_println("spi send timeout");
+				printk("spi send timeout\n");
 				break;
 			}   
 		}   
@@ -121,7 +118,7 @@ int spi_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir
 		timeout = 0x1000;
 		while (SPI_I2S_GetFlagStatus(spi_bus[bus&0xf], SPI_I2S_FLAG_RXNE) == RESET) {
 			if(timeout-- == 0) {
-				serial_println("spi receive timeout");
+				printk("spi receive timeout\n");
 				break;
 			}   
 		}   

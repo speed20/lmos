@@ -60,7 +60,7 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 
 #ifdef ONLY_MP3
 	for (;;) {
-		serial_println("play");
+		printk("play\n");
 		play_sound(ready_sound, sizeof(ready_sound));
 		xSemaphoreTake(xMP3Semaphore, portMAX_DELAY);
 	}
@@ -76,12 +76,12 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 	for (;;) {
 		nAsrStatus = LD_ASR_RUNING;
 		if (mode == LEADER) {
-			serial_println("wait for call");
+			printk("wait for call\n");
 			p = command_prefix;
 			count = sizeof(command_prefix)/sizeof(command_prefix[0]);
 
 		} else {
-			serial_println("wait for command");
+			printk("wait for command\n");
 			retry--;
 			p = command;
 			count = sizeof(command)/sizeof(command[0]);
@@ -95,16 +95,16 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 
 		switch (nAsrStatus) {
 			case LD_ASR_RUNING:
-				serial_println("running");
+				printk("running\n");
 			case LD_ASR_ERROR:
-				serial_println("error");
+				printk("error\n");
 				break;
 			case LD_ASR_FOUNDOK:
 			{
-				serial_println("find");
+				printk("find\n");
 				nAsrRes = ld3320_GetResult();
 				if(nAsrRes < count) {					
-					serial_println("prefix result: %s", p[nAsrRes]);
+					printk("prefix result: %s\n", p[nAsrRes]);
 
 					if (mode == LEADER && nAsrRes < 2) {
 						play_sound(ready_sound, sizeof(ready_sound));
@@ -123,7 +123,7 @@ static portTASK_FUNCTION(vASRTestTask, pvParameters)
 			case LD_ASR_FOUNDZERO:
 			default:
 			{
-				serial_println("not found");
+				printk("not found\n");
 				nAsrStatus = LD_ASR_NONE;
 				if (retry <= 0 || retry > 3)
 					mode = LEADER;

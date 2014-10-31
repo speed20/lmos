@@ -143,7 +143,7 @@ uint8_t spi_send_recv_byte(uint8_t byte)
 	timeout = 0x1000;
 	while (SPI_I2S_GetFlagStatus(LD3320_SPI, SPI_I2S_FLAG_TXE) == RESET) {
 		if(timeout-- == 0) {
-			serial_println("spi send timeout");
+			printk("spi send timeout");
 			break;
 		}
 	}
@@ -153,7 +153,7 @@ uint8_t spi_send_recv_byte(uint8_t byte)
 	timeout = 0x1000;
 	while (SPI_I2S_GetFlagStatus(LD3320_SPI, SPI_I2S_FLAG_RXNE) == RESET) {
 		if(timeout-- == 0) {
-			serial_println("spi receive timeout");
+			printk("spi receive timeout");
 			break;
 		}
 	}
@@ -310,7 +310,7 @@ void ld3320_AsrAddFixed_ByString(char * pRecogString, uint8_t k)
 	ld3320_write_reg(0x08, 0x00);
 	Delay(1000);	
 
-	serial_println("add %s", pRecogString);
+	printk("add %s", pRecogString);
 
 	for (nAsrAddLength=0; nAsrAddLength<50; nAsrAddLength++) {
 		if (pRecogString[nAsrAddLength] == 0)
@@ -333,7 +333,7 @@ uint8_t ld3320_AsrAddFixed(uint8_t **command, uint8_t count)
 	for (i=0; i<count; i++) {	 			
 		if(ld3320_Check_ASRBusyFlag_b2() == 0) {
 			flag = 0;
-			serial_println("b2 busy");
+			printk("b2 busy");
 			break;
 		}		
 		ld3320_AsrAddFixed_ByString(command[i], i);
@@ -343,10 +343,10 @@ uint8_t ld3320_AsrAddFixed(uint8_t **command, uint8_t count)
 
 uint8_t ld3320_GetResult()
 {
-	serial_println("candidate 1: %d", ld3320_read_reg(0xc5));
-	serial_println("candidate 2: %d", ld3320_read_reg(0xc7));
-	serial_println("candidate 3: %d", ld3320_read_reg(0xc9));
-	serial_println("candidate 4: %d", ld3320_read_reg(0xcb));
+	printk("candidate 1: %d", ld3320_read_reg(0xc5));
+	printk("candidate 2: %d", ld3320_read_reg(0xc7));
+	printk("candidate 3: %d", ld3320_read_reg(0xc9));
+	printk("candidate 4: %d", ld3320_read_reg(0xcb));
 	return ld3320_read_reg(0xc5);	  	
 }
 
@@ -405,14 +405,14 @@ void ld3320_set_vol(uint8_t vol)
 
 void ld3320_play()
 {
-	serial_println("%s", __func__);
+	printk("%s", __func__);
 	uint8_t val;
 
 	val = ld3320_read_reg(0x1B);
 	ld3320_write_reg(0x1B, val|0x08);
 
 	if (mp3_pos >= mp3_size) {
-		serial_println("out of size");
+		printk("out of size");
 		return ; 
 	}
 
@@ -437,7 +437,7 @@ void ld3320_play()
 
 void ld3320_load_mp3_data()
 {
-	serial_println("%s", __func__);
+	printk("%s", __func__);
 	uint8_t val;
 	uint8_t ucStatus;
 
@@ -482,10 +482,10 @@ int ld3320_init()
 	ld3320_io_init();
 	ld3320_reset();
 
-	serial_println("reg: 0x%02x", ld3320_read_reg(0x06));
-	serial_println("reg: 0x%02x", ld3320_read_reg(0x06));
-	serial_println("reg: 0x%02x", ld3320_read_reg(0x35));
-	serial_println("reg: 0x%02x", ld3320_read_reg(0xb3));
+	printk("reg: 0x%02x", ld3320_read_reg(0x06));
+	printk("reg: 0x%02x", ld3320_read_reg(0x06));
+	printk("reg: 0x%02x", ld3320_read_reg(0x35));
+	printk("reg: 0x%02x", ld3320_read_reg(0xb3));
 
 	vSemaphoreCreateBinary(xASRSemaphore);
 	vSemaphoreCreateBinary(xMP3Semaphore);
@@ -504,7 +504,7 @@ int ld3320_test()
 	v2 = ld3320_read_reg(0x1b);
 	v3 = ld3320_read_reg(0xb3);
 
-//	serial_println("0x33 = 0x%02x 0x55 = 0x%02x 0xaa = 0x%02x\n", v1, v2, v3);
+//	printk("0x33 = 0x%02x 0x55 = 0x%02x 0xaa = 0x%02x\n", v1, v2, v3);
 
 	return v1 == 0x33 && v2 == 0x55 && v3 == 0xaa;
 }

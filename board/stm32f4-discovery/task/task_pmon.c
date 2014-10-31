@@ -18,7 +18,7 @@ static portTASK_FUNCTION(vPmonTask, pvParameters)
 	bus_t bus = BUS(SPI, 1);
 	char buf[] = {0x01, 0x02};
 
-	serial_println("pmon task start!");
+	printk("pmon task start!\n");
 
 	hal_bus_xfer(bus, 1, buf, 2, OUT);
 

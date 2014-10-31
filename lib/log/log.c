@@ -1,26 +1,38 @@
 #include "log.h"
+#include "hal.h"
 
 #define PRINT_TO_USART
 #define PRINT_PORT 0
 #define BAUDRATE 115200
 
-int serial_print(const char * format, ...)
+#define MAX_BUF_SIZE 1024
+
+int printk(const char * format, ...)
 {
-	int numBytes;
-	char uart_buffer[256];
+	int count;
+	char buffer[MAX_BUF_SIZE];
 	va_list args;
 	va_start(args, format);
 #ifdef PRINT_TO_USART
-	numBytes = vsprintf((char *)uart_buffer, format, args);
-	serial_write(PRINT_PORT, uart_buffer, numBytes);
+	count = vsnprintf((char *)buffer, MAX_BUF_SIZE-1, format, args);
+	if (buffer[count-1] == '\n') {
+		buffer[count-1] == '\n';
+		buffer[count] == '\r';
+		buffer[count+1] == '0';
+		count++;
+	}
+
+	hal_bus_xfer(BUS(UART, 0), 0, buffer, count, OUT);
+//	serial_write(PRINT_PORT, uart_buffer, numBytes);
 #else
-	numBytes = vprintf(format, args);
+	count = vprintf(format, args);
 #endif
 	va_end(args);
-	return numBytes;
+	return count;
 }
 
-int serial_println(const char * format, ...)
+#if 0
+int printk(const char * format, ...)
 {
 	int numBytes;
 	char uart_buffer[256];
@@ -36,6 +48,7 @@ int serial_println(const char * format, ...)
 	va_end(args);
 	return numBytes;
 }
+#endif
 
 /*
 void serial_read_line(uint8_t port_num, char *str)
@@ -45,7 +58,7 @@ void serial_read_line(uint8_t port_num, char *str)
 	do {
 		while (USART_GetFlagStatus(serial_port[port_num], USART_FLAG_RXNE) == RESET) ;
 		c = USART_ReceiveData(serial_port[port_num]);
-		serial_print("%c", c);
+		printk("%c", c);
 		*str = c;
 		str++;
 	} while (c != '\r' && c != '\n');

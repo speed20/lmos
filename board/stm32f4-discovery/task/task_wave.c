@@ -91,7 +91,7 @@ static portTASK_FUNCTION(vCtrlTask, pvParameters)
 				ADC_Cmd(ADC1, ENABLE);
 				break;
 			default:
-				serial_println("=:increase\n\r-:decrease\n\r1:reset\n\r");
+				printk("=:increase\n\r-:decrease\n\r1:reset\n\r");
 		}
 
 		if (flag) {
@@ -131,7 +131,7 @@ static portTASK_FUNCTION(vPulseTask, pvParameters)
 	adc_sample_freq_set(sample_freq);
 	ADC1_CH6_DMA_Config();
 //	ADC_SoftwareStartConv(ADC1);
-	serial_println("start pulse task");
+	printk("start pulse task");
 
 	start = 8;
 	index = 0;
@@ -266,7 +266,7 @@ void ADC1_CH6_DMA_Config(void)
 /* duty = x% */
 void set_pcm_out_freq(uint32_t freq, uint32_t duty)
 {
-	serial_println("set pcm out freq");
+	printk("set pcm out freq");
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -319,7 +319,7 @@ void adc_sample_freq_set(uint32_t freq)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	uint16_t prescaler, period;
 
-	serial_println("set sample freq to %dhz", freq);
+	printk("set sample freq to %dhz", freq);
 	prescaler = 45 - 1; // 2M
 	period = 90000000 / (prescaler + 1) / freq - 1;
 
