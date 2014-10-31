@@ -4,7 +4,8 @@
 #include "semphr.h"
 #include "queue.h"
 #include "delay.h"
-#include "serial.h"
+#include "log.h"
+#include "stm32f429i_discovery.h"
 
 #define CURSOR_STEP     7
 

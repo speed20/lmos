@@ -109,6 +109,7 @@ SECTIONS
     __bss_start__ = _sbss;
     *(.bss)
     *(.bss*)
+	*(COMMON)
 
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */

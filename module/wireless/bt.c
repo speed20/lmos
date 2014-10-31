@@ -1,5 +1,5 @@
 #include "bt.h"
-#include "serial.h"
+#include "log.h"
 #include "stm32f4xx_flash.h"
 #include <stdio.h>
 #include <stdarg.h>

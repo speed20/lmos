@@ -39,8 +39,29 @@ int hal_bus_init(struct hal_bus *hbus)
 		if (hbus->request_dma(hbus->bus) < 0)
 			return -1;
 	}
-	
+
 	return 0;
+}
+
+int hal_bus_enable(bus_t bus, void *arg)
+{
+	struct hal_bus *hbus = hbus_list[bus];
+	
+	if (!hbus) {
+		serial_println("bus %d not registered\n", bus);
+		return -ENODEV;
+	}
+
+	if (hbus->enabled)
+		return 0;
+
+	if (hbus->bus_enable) {
+		int ret = hbus->bus_enable(bus, arg);
+		if (ret == 0)
+			hbus->enabled = 1;
+		return ret;
+	} else
+		return -ENOSYS;
 }
 
 /*

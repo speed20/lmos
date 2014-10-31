@@ -32,6 +32,12 @@ CFLAGS += -I$(lib_local_path)/mpulib
 lib_src += $(call all_c_files,$(lib_local_path)/mpulib)
 endif
 
+VPATH += $(lib_local_path)/log
+CFLAGS += -I$(lib_local_path)/log
+lib_src += $(call all_c_files,$(lib_local_path)/log)
+
+
+
 objs += $(addprefix $(OUT_DIR)/,$(patsubst %.c,%.o,$(lib_src)))
 VPATH += $(dir $(lib_src))
 endif

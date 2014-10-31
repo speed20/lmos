@@ -31,7 +31,6 @@ int spi_io_init(bus_t bus)
 
     EXTI_InitTypeDef EXTI_InitStructure;
     NVIC_InitTypeDef NVIC_InitStructure;
-    SPI_InitTypeDef  SPI_InitStructure;
 
 	if (((bus&0xf0) >> 4) != SPI)
 		return -1;
@@ -52,24 +51,6 @@ int spi_io_init(bus_t bus)
 					io_request(&spi2_io_map[i]);
 				}
 				serial_println("%s %d", __func__, __LINE__);
-				RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
-
-				/* SPI configuration -------------------------------------------------------*/
-				SPI_I2S_DeInit(SPI2);
-				SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-				SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
-				SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
-				SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
-				SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-				SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
-				SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-				SPI_InitStructure.SPI_CRCPolynomial = 7;
-				SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
-			//  SPI_SSOutputCmd(SPI2, ENABLE);
-				SPI_Init(SPI2, &SPI_InitStructure);
-
-				/* Enable SPI2  */
-				SPI_Cmd(SPI2, ENABLE);
 				break;
 			}
 		case 2:
@@ -87,6 +68,32 @@ int spi_io_init(bus_t bus)
 int spi_request_dma(bus_t bus)
 {
 	serial_println("spi request dma, bus: %d", bus);
+}
+
+int spi_bus_enable(bus_t bus, void *arg)
+{
+    SPI_InitTypeDef  SPI_InitStructure;
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+
+	/* SPI configuration -------------------------------------------------------*/
+	SPI_I2S_DeInit(SPI2);
+	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
+	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
+	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
+	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
+	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+	SPI_InitStructure.SPI_CRCPolynomial = 7;
+	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+//  SPI_SSOutputCmd(SPI2, ENABLE);
+	SPI_Init(SPI2, &SPI_InitStructure);
+
+	/* Enable SPI2  */
+	SPI_Cmd(SPI2, ENABLE);
+
+	return 0;
 }
 
 int spi_bus_cfg(bus_t bus, void *cfg)
@@ -131,6 +138,7 @@ struct hal_bus spi0 = {
 	.bus = BUS(SPI, 1),
 	.io_init = spi_io_init,
 	.request_dma = spi_request_dma,
+	.bus_enable = spi_bus_enable,
 	.bus_cfg = spi_bus_cfg,
 	.xfer = spi_bus_xfer,
 };

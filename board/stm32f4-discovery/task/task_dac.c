@@ -1,7 +1,7 @@
 /* Scheduler include files. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "pin_map.h"
+#include "io.h"
 #include "stm32f4xx_dac.h"
 
 static portTASK_FUNCTION_PROTO(vDACTask, pvParameters);
@@ -26,7 +26,7 @@ static portTASK_FUNCTION(vDACTask, pvParameters)
 	}
 }
 
-struct pin_map dac_pin_map[2] = {
+struct io_map dac_io_map[2] = {
 {GPIO_Pin_4, GPIO_PinSource4, GPIOA, AHB1, RCC_AHB1Periph_GPIOA, -1, GPIO_PuPd_NOPULL, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AIN},
 {GPIO_Pin_5, GPIO_PinSource5, GPIOA, AHB1, RCC_AHB1Periph_GPIOA, -1, GPIO_PuPd_NOPULL, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AIN}
 };
@@ -37,7 +37,7 @@ void DAC_Config(void)
 	int i;
 
 	for (i=1; i<2; i++) {
-		io_request(&dac_pin_map[i]);
+		io_request(&dac_io_map[i]);
 	}
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);

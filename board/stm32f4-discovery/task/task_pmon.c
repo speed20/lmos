@@ -4,16 +4,25 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "hal.h"
 
-static portTASK_FUNCTION_PROTO(vFlashPmonTask, pvParameters);
+static portTASK_FUNCTION_PROTO(vPmonTask, pvParameters);
 
-void vStartASRTestTask(unsigned portBASE_TYPE uxPriority)
+void vStartPmonTask(unsigned portBASE_TYPE uxPriority)
 {
-	xTaskCreate(vFlashPmonTask, (signed char *)"flash_pmon", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
+	xTaskCreate(vPmonTask, (signed char *)"flash_pmon", 1024, NULL, uxPriority, (TaskHandle_t *)NULL);
 }
 
-static portTASK_FUNCTION(vFlashPmonTask, pvParameters)
+static portTASK_FUNCTION(vPmonTask, pvParameters)
 {
+	bus_t bus = BUS(SPI, 1);
+	char buf[] = {0x01, 0x02};
+
+	serial_println("pmon task start!");
+
+	hal_bus_xfer(bus, 1, buf, 2, OUT);
+
 	for (;;) {
+		;
 	}
 }

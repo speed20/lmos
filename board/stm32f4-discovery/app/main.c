@@ -11,12 +11,12 @@
 /* Hardware and starter kit includes. */
 #include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
-#include "serial.h"
+#include "log.h"
 
 #include <display/oled.h>
 #include "delay.h"
 #include "display.h"
-#include "init.h"
+#include "hal.h"
 //#include "arm_math.h"
 //#include "usb_core.h"
 
@@ -43,18 +43,18 @@ static void prvCheckTimerCallback( TimeOut_t xTimer );
 int main(void)
 {
 	prvSetupHardware();
-	model_init();
+	hal_init();
 //	USBConfig();
 
 //	vStartPowerboxTask(mainBLOCK_Q_PRIORITY);
 //	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
 	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
 	vStartPulseTask(mainFLASH_TASK_PRIORITY);
-	vStartDACTask(mainFLASH_TASK_PRIORITY);
+	vStartPmonTask(mainIR_TASK_PRIORITY);
+//	vStartDACTask(mainFLASH_TASK_PRIORITY);
 //	vStartMPUTasks(mainFLOP_TASK_PRIORITY+1);
 //	vStartIRTestTask(mainIR_TASK_PRIORITY);
 //	vStartASRTestTask(mainIR_TASK_PRIORITY);
-//	vStartFlashPmonTask(mainIR_TASK_PRIORITY);
 
 	serial_println("system ready to run...");
 
@@ -73,9 +73,8 @@ static void prvSetupHardware( void )
 	/* Ensure all priority bits are assigned as preemption priority bits. */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 	vParTestInitialise();
-	serial_init(PRINT_PORT, BAUDRATE);
 	STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI);
-	i2c_init(2, 400000);
+//	i2c_init(2, 400000);
 }
 /*-----------------------------------------------------------*/
 

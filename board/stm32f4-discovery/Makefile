@@ -25,11 +25,11 @@ tmp_objs  = main.o \
 		GUIConf.o \
 		LCDConf.o \
 		GUI_X.o \
-		task_dac.o \
+		task_pmon.o \
 		task_pulse.o
 
+#		task_dac.o \
 #		task_flash.o \
-#		task_pmon.o
 #		task_powerbox.o \
 #		task_mpu6050.o \
 #		usb_bsp.o \
