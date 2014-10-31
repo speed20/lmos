@@ -12,7 +12,7 @@ endef
 
 CONFIG_HAL_i2c=y
 CONFIG_HAL_serial=y
-CONFIG_HAL_spi=n
+CONFIG_HAL_spi=y
 CONFIG_HAL_time=y
 CONFIG_HAL_usb=n
 

@@ -1,5 +1,7 @@
 #ifndef __PIN_MAP_H
 #define __PIN_MAP_H
+#include "stm32f4xx.h"
+
 typedef enum {
 	AHB1 = 0,
 	AHB2 = 1,
@@ -8,7 +10,8 @@ typedef enum {
 	APB2 = 4,
 }clk_flag_t;
 
-struct pin_map {
+struct io_map {
+	char *name;
 	uint16_t pin;
 	uint8_t src;
 	GPIO_TypeDef *port;
@@ -21,5 +24,5 @@ struct pin_map {
 	GPIOMode_TypeDef mode;
 };
 
-void io_request(const struct pin_map *map);
+void io_request(const struct io_map *map);
 #endif

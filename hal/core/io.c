@@ -1,9 +1,9 @@
 #include "stdint.h"
 #include "global_includes.h"
 #include "stm32f4xx.h"
-#include "pin_map.h"
+#include "io.h"
 
-void io_request(const struct pin_map *map)
+void io_request(const struct io_map *map)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -25,7 +25,8 @@ void io_request(const struct pin_map *map)
 			break;
 	}
 
-	GPIO_PinAFConfig(map->port, map->src, map->alt);
+	if (map->alt != -1)
+		GPIO_PinAFConfig(map->port, map->src, map->alt);
 
 	GPIO_InitStructure.GPIO_Pin = map->pin;
 	GPIO_InitStructure.GPIO_Mode = map->mode;

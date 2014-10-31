@@ -1,22 +1,30 @@
 //#include <stdio.h>
 #include "FreeRTOS.h"
-#include "bus.h"
-#include "init.h"
+#include "hal.h"
 #include "semphr.h"
-#include "pin_map.h"
+#include "io.h"
 
 SPI_TypeDef *spi_bus[] = {SPI1, SPI2, SPI3};
 
-struct pin_map spi2_pin_map[] = {
-{GPIO_Pin_13, GPIO_PinSource13, GPIOB, AHB1, RCC_AHB1Periph_GPIOB, GPIO_AF_SPI2, GPIO_PuPd_NOPULL, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AF},
-{GPIO_Pin_14, GPIO_PinSource14, GPIOB, AHB1, RCC_AHB1Periph_GPIOB, GPIO_AF_SPI2, GPIO_PuPd_NOPULL, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AF},
-{GPIO_Pin_15, GPIO_PinSource15, GPIOB, AHB1, RCC_AHB1Periph_GPIOB, GPIO_AF_SPI2, GPIO_PuPd_NOPULL, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AF},
+struct io_map spi2_io_map[] = {
+	{
+		"spi2_clk", GPIO_Pin_3, GPIO_PinSource3, GPIOD, AHB1, RCC_AHB1Periph_GPIOD, \
+		GPIO_AF_SPI2, GPIO_PuPd_NOPULL, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AF
+	},
+	{
+		"spi2_mosi", GPIO_Pin_14, GPIO_PinSource14, GPIOB, AHB1, RCC_AHB1Periph_GPIOB, \
+		GPIO_AF_SPI2, GPIO_PuPd_NOPULL, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AF
+	},
+	{
+		"spi2_miso", GPIO_Pin_15, GPIO_PinSource15, GPIOB, AHB1, RCC_AHB1Periph_GPIOB, \
+		GPIO_AF_SPI2, GPIO_PuPd_NOPULL, GPIO_OType_PP, GPIO_Speed_50MHz, GPIO_Mode_AF
+	}
 };
 
 SemaphoreHandle_t spi_tx_sem = NULL;
 SemaphoreHandle_t spi_rx_sem = NULL;
 
-int spi_io_init(uint8_t bn)
+int spi_io_init(bus_t bus)
 {
 	serial_println("%s %d", __func__, __LINE__);
 	int ret = 0;
@@ -25,12 +33,12 @@ int spi_io_init(uint8_t bn)
     NVIC_InitTypeDef NVIC_InitStructure;
     SPI_InitTypeDef  SPI_InitStructure;
 
-	if (((bn&0xf0) >> 4) != SPI)
+	if (((bus&0xf0) >> 4) != SPI)
 		return -1;
 
 	serial_println("%s %d", __func__, __LINE__);
 
-	switch(bn&0x0f) {
+	switch(bus&0x0f) {
 		case 0:
 			{
 				serial_println("not implement");
@@ -41,7 +49,7 @@ int spi_io_init(uint8_t bn)
 			{
 				int i;
 				for (i=0; i<3; i++) {
-					io_request(&spi2_pin_map[i]);
+					io_request(&spi2_io_map[i]);
 				}
 				serial_println("%s %d", __func__, __LINE__);
 				RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
@@ -76,16 +84,16 @@ int spi_io_init(uint8_t bn)
 	return ret;
 }
 
-int spi_request_dma(uint8_t bn)
+int spi_request_dma(bus_t bus)
 {
-	serial_println("spi request dma, bn: %d", bn);
+	serial_println("spi request dma, bus: %d", bus);
 }
 
-int spi_bus_cfg(uint8_t bn, void *cfg)
+int spi_bus_cfg(bus_t bus, void *cfg)
 {
 }
 
-int spi_bus_xfer(uint8_t bn, char *buf, uint32_t len, uint32_t dir)
+int spi_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir)
 {
 	serial_println("%s %d bytes\n", dir == IN ? "receive" : "send", len);
     uint32_t timeout;
@@ -94,33 +102,33 @@ int spi_bus_xfer(uint8_t bn, char *buf, uint32_t len, uint32_t dir)
 
 	for (i=0; i<len; i++) {
 		timeout = 0x1000;
-		while (SPI_I2S_GetFlagStatus(spi_bus[bn&0xf], SPI_I2S_FLAG_TXE) == RESET) {
+		while (SPI_I2S_GetFlagStatus(spi_bus[bus&0xf], SPI_I2S_FLAG_TXE) == RESET) {
 			if(timeout-- == 0) {
 				serial_println("spi send timeout");
 				break;
 			}   
 		}   
 
-		SPI_I2S_SendData(spi_bus[bn&0xf], buf[i]);
+		SPI_I2S_SendData(spi_bus[bus&0xf], buf[i]);
 
 		timeout = 0x1000;
-		while (SPI_I2S_GetFlagStatus(spi_bus[bn&0xf], SPI_I2S_FLAG_RXNE) == RESET) {
+		while (SPI_I2S_GetFlagStatus(spi_bus[bus&0xf], SPI_I2S_FLAG_RXNE) == RESET) {
 			if(timeout-- == 0) {
 				serial_println("spi receive timeout");
 				break;
 			}   
 		}   
 
-		buf[i] = (uint8_t)SPI_I2S_ReceiveData(spi_bus[bn&0xf]);
+		buf[i] = (uint8_t)SPI_I2S_ReceiveData(spi_bus[bus&0xf]);
 	}
 
     return i;
 }
 
-struct bus spi0 = {
+struct hal_bus spi0 = {
 	.name = "spi0",
 	.use_dma = true,
-	.bn = BUS(SPI, 0),
+	.bus = BUS(SPI, 1),
 	.io_init = spi_io_init,
 	.request_dma = spi_request_dma,
 	.bus_cfg = spi_bus_cfg,
@@ -129,9 +137,8 @@ struct bus spi0 = {
 
 int spi_bus_init()
 {
-	serial_println("yyyyy");
-	bus_register(&spi0);
+	hal_bus_register(&spi0);
 	return 0;
 }
 
-driver_init(spi_bus_init);
+hal_driver_init(spi_bus_init);
