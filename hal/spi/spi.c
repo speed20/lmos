@@ -27,14 +27,15 @@ SemaphoreHandle_t spi_rx_sem = NULL;
 int spi_io_init(bus_t bus)
 {
 	int ret = 0;
-	int major = bus & 0xf0 >> 4;
-	int minor = bus & 0x0f;
+	int major = TO_MAJOR(bus);
+	int minor = TO_MINOR(bus);
 
     EXTI_InitTypeDef EXTI_InitStructure;
     NVIC_InitTypeDef NVIC_InitStructure;
 
-	if (major != SPI)
+	if (major != SPI) {
 		return -1;
+	}
 
 	switch(minor) {
 		case 0:
@@ -102,36 +103,38 @@ int spi_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir
 	printk("%s %d bytes\n", dir == IN ? "receive" : "send", len);
     uint32_t timeout;
     uint8_t val;
+	int minor = TO_MAJOR(bus);
 	int i;
 
 	for (i=0; i<len; i++) {
 		timeout = 0x1000;
-		while (SPI_I2S_GetFlagStatus(spi_bus[bus&0xf], SPI_I2S_FLAG_TXE) == RESET) {
+		while (SPI_I2S_GetFlagStatus(spi_bus[minor], SPI_I2S_FLAG_TXE) == RESET) {
 			if(timeout-- == 0) {
 				printk("spi send timeout\n");
 				break;
 			}   
 		}   
 
-		SPI_I2S_SendData(spi_bus[bus&0xf], buf[i]);
+		SPI_I2S_SendData(spi_bus[minor], buf[i]);
 
 		timeout = 0x1000;
-		while (SPI_I2S_GetFlagStatus(spi_bus[bus&0xf], SPI_I2S_FLAG_RXNE) == RESET) {
+		while (SPI_I2S_GetFlagStatus(spi_bus[minor], SPI_I2S_FLAG_RXNE) == RESET) {
 			if(timeout-- == 0) {
 				printk("spi receive timeout\n");
 				break;
 			}   
 		}   
 
-		buf[i] = (uint8_t)SPI_I2S_ReceiveData(spi_bus[bus&0xf]);
+		buf[i] = (uint8_t)SPI_I2S_ReceiveData(spi_bus[minor]);
 	}
 
     return i;
 }
 
-struct hal_bus spi0 = {
-	.name = "spi0",
-	.use_dma = true,
+struct hal_bus spi2 = {
+	.name = "spi2",
+	.use_dma = false,
+	.use_int = false,
 	.bus = BUS(SPI, 1),
 	.io_init = spi_io_init,
 	.request_dma = spi_request_dma,
@@ -142,7 +145,7 @@ struct hal_bus spi0 = {
 
 int spi_bus_init()
 {
-	hal_bus_register(&spi0);
+	hal_bus_register(&spi2);
 	return 0;
 }
 

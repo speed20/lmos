@@ -21,7 +21,8 @@ int hal_bus_register(struct hal_bus *hbus)
 	hbus_list[hbus->bus] = hbus;
 
 	if (hal_bus_init(hbus) < 0) {
-		printk("bus %s not registered\n", hbus->name);
+		printk("bus init failed, bus %s %d not registered\n", hbus->name, hbus->bus);
+		hbus_list[hbus->bus] = NULL;
 		return -1;
 	};
 
@@ -31,40 +32,32 @@ int hal_bus_register(struct hal_bus *hbus)
 
 int hal_bus_init(struct hal_bus *hbus)
 {
-	if (hbus->io_init(hbus->bus) < 0)
+	if (hbus->io_init(hbus->bus) < 0) {
+		printk("%s io init failed\n", hbus->name);
 		return -1;
+	}
 
 	if (hbus->use_dma) {
 		printk("use dma: %d\n", hbus->use_dma);
-		if (hbus->request_dma(hbus->bus) < 0)
+		if (!hbus->request_dma || hbus->request_dma(hbus->bus) < 0) {
+			printk("%s request_dma failed.\n", hbus->name);
 			return -1;
+		}
 	}
 
 	if (hbus->use_int) {
-		if (!hbus->request_irq || hbus->request_irq(hbus->bus) < 0)
+		if (!hbus->request_irq || hbus->request_irq(hbus->bus) < 0) {
+			printk("%s request_irq failed.\n", hbus->name);
 			return -1;
+		}
 	}
 
-	if (!hbus->bus_enable || hbus->bus_enable(hbus->bus, hbus->priv) < 0)
+	if (!hbus->bus_enable || hbus->bus_enable(hbus->bus, hbus->priv) < 0) {
+		printk("%s enable failed.", hbus->name);
 		return -1;
-	else
-		return -EPERM;
-
-	return 0;
+	} else
+		return 0;
 }
-
-/*
-void serial_cs(bus_t bus, bool enable)
-{
-	struct hal_bus *bus = hbus_list[num];
-
-	if (!bus) {
-		printk("bus %d not registered\n");
-	} else {
-		bus->cs_enable(enable);
-	}
-}
-*/
 
 int hal_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir)
 {

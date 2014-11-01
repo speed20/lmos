@@ -79,7 +79,7 @@ struct io_map uart_io_map[] = {
 
 int serial_io_init(bus_t bus)
 {
-	int minor = bus & 0x0f;
+	int minor = TO_MINOR(bus);
 
 	io_request(&uart_io_map[minor]);
 	io_request(&uart_io_map[minor+1]);
@@ -110,7 +110,7 @@ int serial_io_init(bus_t bus)
 int serial_enable(bus_t bus, void *priv)
 {
 	int baudrate = (int)priv;
-	int minor = bus & 0x0f;
+	int minor = TO_MINOR(bus);
 	USART_InitTypeDef UartStructure;
 
 	USART_OverSampling8Cmd(serial_port[minor], ENABLE);
@@ -119,6 +119,11 @@ int serial_enable(bus_t bus, void *priv)
 	USART_Init(serial_port[minor], &UartStructure);
 
 	USART_Cmd(serial_port[minor], ENABLE);
+
+	extern int printk_init;
+
+	if (minor == 0)
+		printk_init = 1;
 }
 
 #ifdef SERIAL_USE_DMA
@@ -199,7 +204,7 @@ int serial_read(uint8_t minor, uint8_t *buf, uint32_t len)
 #ifdef SERIAL_USE_DMA
 int serial_request_dma(bus_t bus)
 {
-	int minor = bus & 0xf;
+	int minor = TO_MINOR(bus);
 	DMA_InitTypeDef DMA_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
@@ -307,7 +312,7 @@ void USART2_IRQHandler(void)
 
 int serial_request_irq(bus_t bus)
 {
-	int minor = bus & 0xf;
+	int minor = TO_MINOR(bus);
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
@@ -322,7 +327,8 @@ int serial_request_irq(bus_t bus)
 
 int serial_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir)
 {
-	int minor = bus & 0xf;
+	int minor = TO_MINOR(bus);
+
 	if (dir == IN)
 		return serial_read(minor, buf, len);
 	else
@@ -332,8 +338,9 @@ int serial_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION 
 struct hal_bus uart1 = {
 	.name = "uart1",
 	.use_dma = true,
+	.use_int = true,
 	.bus = BUS(UART, 0),
-	.priv = (int *)115200,
+	.priv = (void *)115200,
 	.io_init = serial_io_init,
 	.request_dma = serial_request_dma,
 	.request_irq = serial_request_irq,

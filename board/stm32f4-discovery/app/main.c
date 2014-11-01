@@ -42,14 +42,14 @@ static void prvCheckTimerCallback( TimeOut_t xTimer );
 
 int main(void)
 {
-	prvSetupHardware();
 	hal_init();
+	prvSetupHardware();
 //	USBConfig();
 
 //	vStartPowerboxTask(mainBLOCK_Q_PRIORITY);
-//	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
-	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
-	vStartPulseTask(mainFLASH_TASK_PRIORITY);
+	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
+//	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
+//	vStartPulseTask(mainFLASH_TASK_PRIORITY);
 //	vStartPmonTask(mainIR_TASK_PRIORITY);
 //	vStartDACTask(mainFLASH_TASK_PRIORITY);
 //	vStartMPUTasks(mainFLOP_TASK_PRIORITY+1);

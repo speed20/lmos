@@ -5,9 +5,9 @@
 #include "stm32f4xx.h"
 
 typedef enum {
-	UART	= 0,
-	SPI		= 1,
-	I2C		= 2,
+	UART	= 1,
+	SPI		= 2,
+	I2C		= 3,
 } major_t;
 
 typedef enum {
@@ -40,7 +40,9 @@ int hal_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir
 
 typedef int (*initcall_t)(void);
 
-#define BUS(major, minor) ((major << 4 | minor & 0x0f) & 0xff)
+#define BUS(major, minor) (((major & 0x0f) << 4) | (minor & 0x0f))
+#define TO_MAJOR(bus) ((bus >> 4) & 0x0f)
+#define TO_MINOR(bus) (bus & 0x0f)
 
 #define __define_initcall(level, fn, id) \
 	    initcall_t __initcall_##fn __attribute__((section(".initcall"level".init"))) = fn

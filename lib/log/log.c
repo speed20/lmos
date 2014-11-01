@@ -7,18 +7,23 @@
 
 #define MAX_BUF_SIZE 1024
 
+int printk_init = 0;
+
 int printk(const char * format, ...)
 {
 	int count;
 	char buffer[MAX_BUF_SIZE];
 	va_list args;
 	va_start(args, format);
+
+	if (printk_init == 0)
+		return 0;
+
 #ifdef PRINT_TO_USART
 	count = vsnprintf((char *)buffer, MAX_BUF_SIZE-1, format, args);
 	if (buffer[count-1] == '\n') {
-		buffer[count-1] == '\n';
-		buffer[count] == '\r';
-		buffer[count+1] == '0';
+		buffer[count] = '\r';
+		buffer[count+1] = 0;
 		count++;
 	}
 
