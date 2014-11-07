@@ -1,23 +1,7 @@
-/**
-  ******************************************************************************
-  * @file    usbd_cdc_vcp.c
-  * @author  MCD Application Team
-  * @version V1.0.0
-  * @date    22-July-2011
-  * @brief   Generic media access Layer.
-  ******************************************************************************
-  * @attention
-  *
-  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
-  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
-  * TIME. AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY
-  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
-  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
-  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
-  *
-  * <h2><center>&copy; COPYRIGHT 2011 STMicroelectronics</center></h2>
-  ******************************************************************************
-  */ 
+#include "FreeRTOS.h"
+#include "hal.h"
+#include "semphr.h"
+#include "io.h"
 
 #ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED 
 #pragma     data_alignment = 4 
@@ -28,10 +12,6 @@
 //Library config for this project!!!!!!!!!!!
 #include "stm32f4xx_conf.h"
 
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
 LINE_CODING linecoding =
   {
     115200, /* baud rate*/
@@ -41,25 +21,14 @@ LINE_CODING linecoding =
   };
 
 
-USART_InitTypeDef USART_InitStructure;
+extern uint8_t  APP_Rx_Buffer [];
+extern uint32_t APP_Rx_ptr_in;
 
-/* These are external variables imported from CDC core to be used for IN 
-   transfer management. */
-extern uint8_t  APP_Rx_Buffer []; /* Write CDC received data in this buffer.
-                                     These data will be sent over USB IN endpoint
-                                     in the CDC core functions. */
-extern uint32_t APP_Rx_ptr_in;    /* Increment this pointer or roll it back to
-                                     start address when writing received data
-                                     in the buffer APP_Rx_Buffer. */
-
-/* Private function prototypes -----------------------------------------------*/
 static uint16_t VCP_Init     (void);
 static uint16_t VCP_DeInit   (void);
 static uint16_t VCP_Ctrl     (uint32_t Cmd, uint8_t* Buf, uint32_t Len);
 static uint16_t VCP_DataTx   (uint8_t* Buf, uint32_t Len);
 static uint16_t VCP_DataRx   (uint8_t* Buf, uint32_t Len);
-
-static uint16_t VCP_COMConfig(uint8_t Conf);
 
 CDC_IF_Prop_TypeDef VCP_fops = 
 {
@@ -70,38 +39,16 @@ CDC_IF_Prop_TypeDef VCP_fops =
   VCP_DataRx
 };
 
-/* Private functions ---------------------------------------------------------*/
-/**
-  * @brief  VCP_Init
-  *         Initializes the Media on the STM32
-  * @param  None
-  * @retval Result of the opeartion (USBD_OK in all cases)
-  */
 static uint16_t VCP_Init(void)
 {
   return USBD_OK;
 }
 
-/**
-  * @brief  VCP_DeInit
-  *         DeInitializes the Media on the STM32
-  * @param  None
-  * @retval Result of the opeartion (USBD_OK in all cases)
-  */
 static uint16_t VCP_DeInit(void)
 {
   return USBD_OK;
 }
 
-
-/**
-  * @brief  VCP_Ctrl
-  *         Manage the CDC class requests
-  * @param  Cmd: Command code            
-  * @param  Buf: Buffer containing command data (request parameters)
-  * @param  Len: Number of data to be sent (in bytes)
-  * @retval Result of the opeartion (USBD_OK in all cases)
-  */
 static uint16_t VCP_Ctrl (uint32_t Cmd, uint8_t* Buf, uint32_t Len)
 { 
   switch (Cmd)
@@ -155,42 +102,11 @@ static uint16_t VCP_Ctrl (uint32_t Cmd, uint8_t* Buf, uint32_t Len)
   return USBD_OK;
 }
 
-
-/**
-  * @brief  putchar
-  *         Sends one char over the USB serial link.
-  * @param  buf: char to be sent
-  * @retval none
-  */
-
-void VCP_put_char(uint8_t buf)
+static uint16_t VCP_COMConfig(uint8_t Conf)
 {
-	VCP_DataTx(&buf,1);
+  return USBD_OK;
 }
 
-void VCP_send_str(uint8_t* buf)
-{
-	uint32_t i=0;
-	while(*(buf + i))
-	{
-		i++;
-	}
-	VCP_DataTx(buf, i);
-}
-
-void VCP_send_data(uint8_t *buf, uint32_t len)
-{
-	VCP_DataTx(buf, len);
-}
-
-/**
-  * @brief  VCP_DataTx
-  *         CDC received data to be send over USB IN endpoint are managed in 
-  *         this function.
-  * @param  Buf: Buffer of data to be sent
-  * @param  Len: Number of data to be sent (in bytes)
-  * @retval Result of the opeartion: USBD_OK if all operations are OK else VCP_FAIL
-  */
 static uint16_t VCP_DataTx (uint8_t* Buf, uint32_t Len)
 {
 	uint32_t i=0;
@@ -209,27 +125,10 @@ static uint16_t VCP_DataTx (uint8_t* Buf, uint32_t Len)
   return USBD_OK;
 }
 
-/**
-  * @brief  VCP_DataRx
-  *         Data received over USB OUT endpoint are sent over CDC interface 
-  *         through this function.
-  *           
-  *         @note
-  *         This function will block any OUT packet reception on USB endpoint 
-  *         untill exiting this function. If you exit this function before transfer
-  *         is complete on CDC interface (ie. using DMA controller) it will result 
-  *         in receiving more data while previous ones are still not sent.
-  *                 
-  * @param  Buf: Buffer of data to be received
-  * @param  Len: Number of data received (in bytes)
-  * @retval Result of the opeartion: USBD_OK if all operations are OK else VCP_FAIL
-  */
-
 #define APP_TX_BUF_SIZE 128
 uint8_t APP_Tx_Buffer[APP_TX_BUF_SIZE];
 uint32_t APP_tx_ptr_head;
 uint32_t APP_tx_ptr_tail;
-
 
 static uint16_t VCP_DataRx (uint8_t* Buf, uint32_t Len)
 {
@@ -249,96 +148,53 @@ static uint16_t VCP_DataRx (uint8_t* Buf, uint32_t Len)
   return USBD_OK;
 }
 
-uint8_t VCP_get_char(uint8_t *buf)
+int usb_vcp_io_init(bus_t bus)
 {
- if(APP_tx_ptr_head == APP_tx_ptr_tail)
- 	return 0;
-	
- *buf = APP_Tx_Buffer[APP_tx_ptr_tail];
- APP_tx_ptr_tail++;
- if(APP_tx_ptr_tail == APP_TX_BUF_SIZE)
-  APP_tx_ptr_tail = 0;
-	
- return 1;
+	return 0;
 }
 
-uint8_t VCP_get_string(uint8_t *buf)
+int usb_vcp_request_dma(bus_t bus)
 {
- if(APP_tx_ptr_head == APP_tx_ptr_tail)
- 	return 0;
-	
- while(!APP_Tx_Buffer[APP_tx_ptr_tail] || APP_Tx_Buffer[APP_tx_ptr_tail] == '\n' || APP_Tx_Buffer[APP_tx_ptr_tail] == '\r')
-	{
-		APP_tx_ptr_tail++;
-		if(APP_tx_ptr_tail == APP_TX_BUF_SIZE)
-   			APP_tx_ptr_tail = 0;
-		if(APP_tx_ptr_head == APP_tx_ptr_tail)
- 			return 0;
-	}
-       
- int i=0;
- do
-  {
-  *(buf+i) = APP_Tx_Buffer[i+APP_tx_ptr_tail];
-  i++;
-	  
-  if((APP_tx_ptr_tail+i) == APP_TX_BUF_SIZE)
-   i = -APP_tx_ptr_tail;
-  if(APP_tx_ptr_head == (APP_tx_ptr_tail+i))
- 	return 0;
-
- }while(APP_Tx_Buffer[APP_tx_ptr_tail+i] && APP_Tx_Buffer[APP_tx_ptr_tail+i] != '\n' && APP_Tx_Buffer[APP_tx_ptr_tail+i] != '\r');
-
- *(buf+i) = 0;
- APP_tx_ptr_tail+= i;
- if(APP_tx_ptr_tail >= APP_TX_BUF_SIZE)
-   APP_tx_ptr_tail -= APP_TX_BUF_SIZE;
- return i;
+	return 0;
 }
 
-/**
-  * @brief  VCP_COMConfig
-  *         Configure the COM Port with default values or values received from host.
-  * @param  Conf: can be DEFAULT_CONFIG to set the default configuration or OTHER_CONFIG
-  *         to set a configuration received from the host.
-  * @retval None.
-  */
-static uint16_t VCP_COMConfig(uint8_t Conf)
+int usb_vcp_bus_enable(bus_t bus, void *arg)
 {
-  return USBD_OK;
+	USBConfig();
+	return 0;
 }
 
-/**
-  * @brief  EVAL_COM_IRQHandler
-  *         
-  * @param  None.
-  * @retval None.
-  */
-void EVAL_COM_IRQHandler(void)
+int usb_vcp_bus_cfg(bus_t bus, void *cfg)
 {
-
+	return 0;
 }
-#if 0
-int _write_r(void *reent, uint16_t fd, const char *ptr, uint32_t len) {
-  		uint32_t counter = len;
-#define STDERR_FILENO 2
-#define STDOUT_FILENO 1 
-        if(fd != STDOUT_FILENO && fd != STDERR_FILENO ) {                       // stdout goes to UARTx                              // stderr goes to UARTd
-                return len;
-        }
-	
-        while(counter-- > 0) {                          // Send the character from the buffer to UART
-        	APP_Rx_Buffer[APP_Rx_ptr_in]= (*ptr++);
-	 		APP_Rx_ptr_in++;
 
-			/* To avoid buffer overflow */
-			if(APP_Rx_ptr_in == APP_RX_DATA_SIZE)
-			{
-				APP_Rx_ptr_in = 0;
-			}
-        }
-        return len;
+int usb_vcp_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir)
+{
+	if (dir == IN)
+		VCP_DataRx(buf, len);
+	else if (dir == OUT)
+		VCP_DataTx(buf, len);
+	return 0;
 }
-#endif
 
-/******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/
+struct hal_bus usb_vcp = {
+	.name = "usb_vcp",
+	.use_dma = false,
+	.use_int = false,
+	.bus = BUS(USB, 0),
+	.io_init = usb_vcp_io_init,
+	.request_dma = usb_vcp_request_dma,
+	.bus_enable = usb_vcp_bus_enable,
+	.bus_cfg = usb_vcp_bus_cfg,
+	.xfer = usb_vcp_bus_xfer,
+};
+
+int usb_vcp_bus_init()
+{
+	hal_bus_register(&usb_vcp);
+
+	return 0;
+}
+
+hal_driver_init(usb_vcp_bus_init);

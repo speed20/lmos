@@ -44,7 +44,6 @@ int main(void)
 {
 	hal_init();
 	prvSetupHardware();
-//	USBConfig();
 
 //	vStartPowerboxTask(mainBLOCK_Q_PRIORITY);
 	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
@@ -71,7 +70,6 @@ static void prvCheckTimerCallback( TimeOut_t xTimer )
 static void prvSetupHardware( void )
 {
 	/* Ensure all priority bits are assigned as preemption priority bits. */
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 	vParTestInitialise();
 	STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI);
 //	i2c_init(2, 400000);

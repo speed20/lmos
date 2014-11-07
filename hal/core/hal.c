@@ -78,6 +78,8 @@ void hal_init()
 {
 	initcall_t *fn;
 
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+
 	for (fn = &__init_start; fn < &__init_end; fn++) {
 		printk("fn: %p\n", fn);
 		(*fn)();
