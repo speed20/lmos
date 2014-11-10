@@ -60,6 +60,8 @@
 * @{
 */ 
 
+volatile char usb_otg_connected = 0;
+
 USBD_Usr_cb_TypeDef USR_cb =
 {
   USBD_USR_Init,
@@ -160,6 +162,8 @@ void USBD_USR_DeviceConfigured (void)
 */
 void USBD_USR_DeviceConnected (void)
 {
+	printk("usb connected\n");
+	usb_otg_connected = 1;
 }
 
 
@@ -171,6 +175,8 @@ void USBD_USR_DeviceConnected (void)
 */
 void USBD_USR_DeviceDisconnected (void)
 {
+	printk("usb disconnected\n");
+	usb_otg_connected = 1;
 }
 
 /**

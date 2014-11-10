@@ -1,6 +1,6 @@
 ifneq ($(OUT_DIR), )
 SOC := ARM_CM4F
-MEM_MANAGMENT := heap_2
+MEM_MANAGMENT := heap_4
 kernel_dir := kernel/FreeRTOS/Source
 
 kernel_src += $(wildcard $(ROOT_DIR)/$(kernel_dir)/*.c)

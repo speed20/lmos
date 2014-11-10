@@ -440,6 +440,7 @@ uint32_t USBConfig(void)
 
 void OTG_HS_IRQHandler(void)
 {
+	printk("hs irq\n");
     USBD_OTG_ISR_Handler(&USB_OTG_dev);
 }
 

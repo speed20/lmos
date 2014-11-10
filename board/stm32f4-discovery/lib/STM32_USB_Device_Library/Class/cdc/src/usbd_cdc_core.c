@@ -738,12 +738,10 @@ static void Handle_USBAsynchXfer (void *pdev)
     if(APP_Rx_ptr_out > APP_Rx_ptr_in) /* rollback */
     { 
       APP_Rx_length = APP_RX_DATA_SIZE - APP_Rx_ptr_out;
-    
     }
     else 
     {
       APP_Rx_length = APP_Rx_ptr_in - APP_Rx_ptr_out;
-     
     }
 #ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
      APP_Rx_length &= ~0x03;
@@ -771,6 +769,7 @@ static void Handle_USBAsynchXfer (void *pdev)
                CDC_IN_EP,
                (uint8_t*)&APP_Rx_Buffer[USB_Tx_ptr],
                USB_Tx_length);
+	printk("usb buffer size: %d current: %d length: %d\n", APP_RX_DATA_SIZE, USB_Tx_ptr, USB_Tx_length);
   }  
   
 }

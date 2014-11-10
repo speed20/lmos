@@ -26,8 +26,8 @@ tmp_objs  = main.o \
 		LCDConf.o \
 		GUI_X.o \
 		usb_bsp.o \
-		task_flash.o
-#		task_pmon.o \
+		task_flash.o \
+		task_pmon.o \
 		task_pulse.o
 
 #		task_dac.o \
@@ -69,7 +69,8 @@ $(image): $(objs) $(asm_objs)
            ${LDFLAGS} -o $@ $^  \
            '${LIBC}' '${LIBM}' '${LIBGCC}' 'lib/STemWinLibrary522/Lib/STemWin522_CM4_OS_GCC.a'
 	${OBJCOPY} -O binary $@ ${@:.elf=.bin}
-	${STRIP} $@
+
+#	${STRIP} $@
 
 $(OUT_DIR):
 ifeq ($(filter $(OUT_DIR),$(wildcard *)), )

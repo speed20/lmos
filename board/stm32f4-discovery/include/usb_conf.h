@@ -60,12 +60,15 @@
 *  The USE_EMBEDDED_PHY symbol is defined in the project compiler preprocessor
 *  when FS core is used
 *******************************************************************************/
+
+#if 0
 #ifndef USE_USB_OTG_FS
- //#define USE_USB_OTG_FS
+ #define USE_USB_OTG_FS
 #endif /* USE_USB_OTG_FS */
 
 #ifdef USE_USB_OTG_FS
- //#define USB_OTG_FS_CORE
+ #define USB_OTG_FS_CORE
+#endif
 #endif
 
 /****************** USB OTG HS PHY CONFIGURATION *******************************

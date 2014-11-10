@@ -210,10 +210,13 @@ uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev)
 {
   USB_OTG_GINTSTS_TypeDef  gintr_status;
   uint32_t retval = 0;
+
   
   if (USB_OTG_IsDeviceMode(pdev)) /* ensure that we are in device mode */
   {
     gintr_status.d32 = USB_OTG_ReadCoreItr(pdev);
+
+	  printk("status: 0x%08x\n", gintr_status.d32);
     if (!gintr_status.d32) /* avoid spurious interrupt */
     {
       return 0;
@@ -251,19 +254,16 @@ uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev)
     if (gintr_status.b.sofintr)
     {
       retval |= DCD_HandleSof_ISR(pdev);
-      
     }
     
     if (gintr_status.b.rxstsqlvl)
     {
       retval |= DCD_HandleRxStatusQueueLevel_ISR(pdev);
-      
     }
     
     if (gintr_status.b.usbreset)
     {
       retval |= DCD_HandleUsbReset_ISR(pdev);
-      
     }
     if (gintr_status.b.enumdone)
     {
@@ -432,6 +432,7 @@ static uint32_t DCD_HandleInEP_ISR(USB_OTG_CORE_HANDLE *pdev)
   
   while ( ep_intr )
   {
+	  printk("y");
     if (ep_intr&0x1) /* In ITR */
     {
       diepint.d32 = DCD_ReadDevInEP(pdev , epnum); /* Get In ITR status */
@@ -503,6 +504,7 @@ static uint32_t DCD_HandleOutEP_ISR(USB_OTG_CORE_HANDLE *pdev)
   
   while ( ep_intr )
   {
+	  printk("x");
     if (ep_intr&0x1)
     {
       

@@ -15,14 +15,16 @@ void vStartPmonTask(unsigned portBASE_TYPE uxPriority)
 
 static portTASK_FUNCTION(vPmonTask, pvParameters)
 {
-	bus_t bus = BUS(SPI, 1);
+	bus_t spi = BUS(SPI, 1);
+	bus_t usb_vcp = BUS(USB, 0);
+
 	char buf[] = {0x01, 0x02};
 
 	printk("pmon task start!\n");
 
-	hal_bus_xfer(bus, 1, buf, 2, OUT);
+	hal_bus_xfer(spi, 0, buf, 2, OUT);
 
 	for (;;) {
-		;
+		hal_bus_xfer(usb_vcp, 0, "hello\r\n", 7, OUT);
 	}
 }

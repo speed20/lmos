@@ -13,13 +13,13 @@
 #include "stm32f4xx_conf.h"
 
 LINE_CODING linecoding =
-  {
-    115200, /* baud rate*/
+{
+	115200, /* baud rate*/
     0x00,   /* stop bits-1*/
     0x00,   /* parity - none*/
     0x08    /* nb. of bits 8*/
-  };
-
+};
+extern volatile char usb_otg_connected;
 
 extern uint8_t  APP_Rx_Buffer [];
 extern uint32_t APP_Rx_ptr_in;
@@ -160,6 +160,7 @@ int usb_vcp_request_dma(bus_t bus)
 
 int usb_vcp_bus_enable(bus_t bus, void *arg)
 {
+	printk("enable usb vcp\n");
 	USBConfig();
 	return 0;
 }
@@ -171,6 +172,8 @@ int usb_vcp_bus_cfg(bus_t bus, void *cfg)
 
 int usb_vcp_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION dir)
 {
+	if (!usb_otg_connected)
+		return -1;
 	if (dir == IN)
 		VCP_DataRx(buf, len);
 	else if (dir == OUT)

@@ -49,7 +49,7 @@ int main(void)
 	vStartLEDFlashTasks(mainFLASH_TASK_PRIORITY);
 //	vStartCtrlTask(mainBLOCK_Q_PRIORITY);
 //	vStartPulseTask(mainFLASH_TASK_PRIORITY);
-//	vStartPmonTask(mainIR_TASK_PRIORITY);
+	vStartPmonTask(mainIR_TASK_PRIORITY);
 //	vStartDACTask(mainFLASH_TASK_PRIORITY);
 //	vStartMPUTasks(mainFLOP_TASK_PRIORITY+1);
 //	vStartIRTestTask(mainIR_TASK_PRIORITY);

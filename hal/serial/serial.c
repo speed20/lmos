@@ -4,20 +4,20 @@
 #include <stdarg.h>
 #include <string.h>
 
-#define SERIAL_USE_DMA
+//#define SERIAL_USE_DMA
 
 #define MAX_NUM_UARTS 5
 
-#ifdef SERIAL_USE_DMA
+//#ifdef SERIAL_USE_DMA
 
 #define SERIAL_DMA_BUF_LEN 64
 volatile static uint8_t tx_flag = 0;
 volatile static uint8_t rx_flag = 0;
-SemaphoreHandle_t rx_sem = NULL;
 
+SemaphoreHandle_t rx_sem = NULL;
 uint8_t serial_tx_buf[SERIAL_DMA_BUF_LEN];
 uint8_t serial_rx_buf[SERIAL_DMA_BUF_LEN];
-#endif
+//#endif
 
 USART_TypeDef * serial_port[MAX_NUM_UARTS] = {
 	USART1,
@@ -337,12 +337,16 @@ int serial_bus_xfer(bus_t bus, int32_t addr, char *buf, uint32_t len, DIRECTION 
 
 struct hal_bus uart1 = {
 	.name = "uart1",
-	.use_dma = true,
+	.use_dma = false,
 	.use_int = true,
 	.bus = BUS(UART, 0),
 	.priv = (void *)115200,
 	.io_init = serial_io_init,
+#ifdef SERIAL_USE_DMA
 	.request_dma = serial_request_dma,
+#else
+	.request_dma = NULL,
+#endif
 	.request_irq = serial_request_irq,
 	.bus_enable = serial_enable,
 	.bus_cfg = NULL,
